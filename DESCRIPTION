@@ -1,0 +1,18 @@
+Package: fragCounter
+Title: GC mappability correction and segmentation
+Version: 0.0.0.9000
+Authors@R: person(given = "Marcin", family = "Imielinski", email = "mimielinski@nygenome.org", role = c("aut", "cre"))
+Description: GC bias curve is determined by loess regression of read count by GC and mappability scores. Segmentation is done by circular binary segmentation (CBS) algorithm after getting tumor/normal ratios of corrected read counts.
+Depends:
+  R (>= 3.4.1),
+  bamUtils
+Imports:
+  data.table,
+  GenomicRanges (>= 1.8),
+  gUtils,
+  rtracklayer
+License: GPL-2
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 6.0.1
+Suggests: testthat
