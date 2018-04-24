@@ -9,13 +9,45 @@ library(fragCounter)
 ## $ samtools view -S -b chr21.unique.sam > chr21.bam
 ## $ samtools index chr21.bam
 
+### Sample 2bit file w/ chr21
+# samtools faidx hg19.fa chr21 > hg19_chr21.fa
+# /gpfs/commons/home/twalradt/software/Blat/faToTwoBit hg19_chr21.fa hg19_chr21.2bit
+
+### Create sample bigWig file
+# bw.path = '~/DB/UCSC/wgEncodeCrgMapabilityAlign100mer.bigWig'
+# bw = rtracklayer::import(bw.path, selection = tiles)
+# export(bw, "~/git/fragCounter/tests/testthat/chr21.bigWig", 'bigWig')
+
+bw = 'chr21.bigWig'
+twobit = 'hg19_chr21.2bit'
+
 example_bam = 'chr21.bam'
 example_bai = 'chr21.bai'
+
+
+test_that("MAP.fun", {
+
+  expect_equal(length(MAP.fun(twobitURL = twobit, bw.path = bw)), 240650)
+  expect_equal(length(MAP.fun(twobitURL = twobit, bw.path = bw) %Q% (score > 0)), 171124)
+
+})
+
+
+
+test_that("GC.fun", {
+
+  expect_equal(length(GC.fun(twobitURL = twobit)), 240650)
+  expect_equal(length(GC.fun(twobitURL =twobit) %Q% (score > 0)), 175542)
+
+})
+
 
 test_that("PrepareCov", {
 
   expect_error(PrepareCov(bam = NULL, cov = NULL))
-  expect_equal(length(PrepareCov(bam = example_bam)),15509063)
-
+  expect_equal(length(PrepareCov(example_bam)), 15509063)
+  expect_equal(max(width(PrepareCov(example_bam))), 200)
+#  expect_equal(length(PrepareCov(example_bam, paired = FALSE)), 15509063)
+#  expect_equal(max(width(PrepareCov(example_bam, paired = FALSE))), 200)
 
 })

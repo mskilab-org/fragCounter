@@ -6,7 +6,7 @@
 \usage{
 MAP.fun(win.size = 200, twobitURL = "~/DB/UCSC/hg19.2bit",
   bw.path = "~/DB/UCSC/wgEncodeCrgMapabilityAlign100mer.bigWig",
-  twobit.win = 1000, mc.cores = 40)
+  twobit.win = 1000, mc.cores = 10)
 }
 \arguments{
 \item{win.size}{Window size, in basepairs, to calculate mappability for (should match window

@@ -18,29 +18,23 @@
 #' @author Marcin Imielinski
 #' @export
 
-MAP.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', bw.path = '~/DB/UCSC/wgEncodeCrgMapabilityAlign100mer.bigWig', twobit.win = 1e3, mc.cores = 40)
-{
+MAP.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', bw.path = '~/DB/UCSC/wgEncodeCrgMapabilityAlign100mer.bigWig', twobit.win = 1e3, mc.cores = 10) {
   tiles = gr.tile(seqlengths(TwoBitFile(twobitURL)),win.size)
   tiles = tiles %Q% (seqnames %in% c(paste0("chr",seq(1,22)),"chrX","chrY")) # removes all chromomes except 1:22 and X/Y
   seqlevels(tiles) = seqlevelsInUse(tiles) # Get rid of empty seqname factor levels
-  x = seq(1,(length(tiles) / twobit.win))
-
+  x = seq(1,(length(tiles) / twobit.win)) 
   map.score = function(x) {
     this.ix = seq(1 + ((x-1) * twobit.win), x * twobit.win)
-    print(this.ix[1])
     out = data.table(mappability = tiles[this.ix] %O% (rtracklayer::import(bw.path, selection = tiles[this.ix]) %Q% (score==1)), index = this.ix)
     return(out)
   }
-
   map.out = mclapply(x, map.score, mc.cores = mc.cores)
   map.out = rbindlist(map.out)
-
   if (!is.integer(length(tiles)/twobit.win)){
     edge.num = seq(twobit.win*max(x)+1,length(tiles))
     edge.out = data.table(mappability = tiles[edge.num] %O% (rtracklayer::import(bw.path, selection = tiles[edge.num]) %Q% (score==1)), index = edge.num)
     map.out = rbind(map.out, edge.out)
   }
-
   setkey(map.out,index)
   print(key(map.out))
   tiles$score = map.out$mappability
@@ -61,12 +55,10 @@ MAP.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', bw.path = 
 #' @author Marcin Imielinski
 #' @export
 
-GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win = 1e3, mc.cores = 10)
-{
+GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win = 1e3, mc.cores = 10) {
   tiles = gr.tile(seqlengths(TwoBitFile(twobitURL)),win.size)
   tiles = tiles %Q% (seqnames %in% c(paste0("chr",seq(1,22)),"chrX","chrY")) # removes all chromomes except 1:22 and X/Y
   x = seq(1,(length(tiles) / twobit.win))
-
   gc.con = function(x) {
     this.ix = seq(1 + ((x-1) * twobit.win), x * twobit.win)
     # print(this.ix[1])
@@ -74,17 +66,14 @@ GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win 
     out = data.table(gc = rowSums(tmp[, c('C', 'G')])/rowSums(tmp), index = this.ix)
     return(out)
   }
-
   gc.out = mclapply(x, gc.con, mc.cores = mc.cores)
   gc.out = rbindlist(gc.out)
-
   if (!is.integer(length(tiles)/twobit.win)){
     edge.num = seq(twobit.win*max(x)+1,length(tiles))
     tmp.edge = alphabetFrequency(get_seq(twobitURL, tiles[edge.num]))
     edge.out = data.table(gc = rowSums(tmp.edge[, c('C', 'G')])/rowSums(tmp.edge), index = edge.num)
     gc.out = rbind(gc.out, edge.out)
   }
-
   setkey(gc.out,index)
   tiles$score = gc.out$gc
   tiles = gr.sub(tiles)
@@ -106,56 +95,38 @@ GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win 
 #' @param outdir Directory to dump output into
 #' @export
 
-PrepareCov = function(bam, cov = NULL, midpoint = FALSE, window = 200, minmapq = 1, paired = TRUE, outdir = NULL)
-{
-  if (is.null(bam))
-    {
-      bam = ''
-    }
+PrepareCov = function(bam, cov = NULL, midpoint = FALSE, window = 200, minmapq = 1, paired = TRUE, outdir = NULL) {
+  if (is.null(bam)) {
+    bam = ''
+  }
   midpoint = grepl("(T)|(TRUE)", midpoint, ignore.case = T)
-
-  if (file.exists(bam)) # & is.null(cov))
-    {
-      if (!midpoint)
-        {
-          cat("Running without midpoint!!!\n")
-        }
-
-      print('Doing it!')
-
-      if (is.null(paired))
-        {
-          paired = TRUE
-        }
-  
-      if (paired)
-        {
-          cov = bam.cov.tile(bam, window = 200, chunksize = 1e6, midpoint = FALSE, min.mapq = 1)  ## counts midpoints of fragments
-        }
-      else
-        {
-          sl = seqlengths(BamFile(bam))
-          tiles = gr.tile(sl, window)
-          cov = bam.cov.gr(bam, tiles, isPaired = NA, isProperPair = NA, hasUnmappedMate = NA)  ## counts midpoints of fragments
-          cov$count = cov$records/width(cov)
-        }
+  if (file.exists(bam)) { # & is.null(cov))
+    if (!midpoint) {
+      cat("Running without midpoint!!!\n")
     }
-
-  else if (!is.null(cov))
-    {
-       cov = readRDS(cov)
+    print('Doing it!')
+    if (is.null(paired)) {
+      paired = TRUE
     }
-  else
-    {
-      stop("Can't locate either bam or coverage input file")
+    if (paired) {
+      cov = bam.cov.tile(bam, window = 200, chunksize = 1e6, midpoint = FALSE, min.mapq = 1)  ## counts midpoints of fragments
     }
-
+    else {
+      sl = seqlengths(BamFile(bam))
+      tiles = gr.tile(sl, window)
+      cov = bam.cov.gr(bam, intervals = tiles, isPaired = NA, isProperPair = NA, hasUnmappedMate = NA, chunksize = 1e7)  ## counts midpoints of fragments    # Can we increase chunksize?
+      cov$count = cov$records/width(cov)
+    }
+  }
+  else if (!is.null(cov)) {
+    cov = readRDS(cov)
+  }
+  else {
+    stop("Can't locate either bam or coverage input file")
+  }
   gc()
-
   cat('Finished acquiring coverage\n')
-
   return(cov)
-
   cat('done\n')
 }
 
@@ -668,32 +639,3 @@ fragCounter = function(bam, cov = NULL, midpoint = FALSE,window = 200, gc.rds.di
 
 
 
-
-
-## #' @name fragCounter
-## #' @title GC mappability correction and segmentation
-## #' @description GC bias curve is determined by loess regression of read count by GC and mappability scores
-## #' Segmentation is done by CBS algorithm after getting tumor / normal ratios of corrected read counts
-## #' @author Marcin Imielinski
-## #' @param cov coverage output file from correctcov_stub 
-## #' @param outdir Directory to dump output into
-## #' @export
-
-
-## fragCounter = function(cov)
-## {
-##   cov$reads.corrected = multicoco(cov, numlevs = 1, base = max(10, 1e5/wid), mc.cores = 1, fields = c('gc', 'map'), iterative = T, mono = T)$reads.corrected
-##   out.rds = paste(outdir, '/cov.rds', sep = '')
-##   out.corr = paste(gsub('.rds$', '', out.rds), '.corrected.bw', sep = '')
-##   if (!is.null(tryCatch({library(rtracklayer); 'success'}, error = function(e) NULL)))
-##   {
-##     cov.corr.out = cov
-##     cov.corr.out$score = cov$reads.corrected
-##     cov.corr.out$score[is.na(cov.corr.out$score)] = -1
-##     cov.corr.out = cov.corr.out[width(cov.corr.out)==wid] ## remove any funky widths at end of chromosome
-##     export(cov.corr.out[, 'score'], out.corr, 'bigWig', dataFormat = 'fixedStep')
-##   }
-##   saveRDS(cov, paste(gsub('.rds$', '', out.rds), '.rds', sep = ''))
-##   return(cov)
-##   cat('done\n')
-## }
