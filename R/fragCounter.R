@@ -106,26 +106,15 @@ GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win 
 #' @param outdir Directory to dump output into
 #' @export
 
-PrepareCov = function(bam, cov = NULL, midpoint = FALSE, window = 200, minmapq = 1, paired = TRUE, outdir)
+PrepareCov = function(bam, cov = NULL, midpoint = FALSE, window = 200, minmapq = 1, paired = TRUE, outdir = NULL)
 {
-  out.raw.rds = paste(outdir, '/cov.raw.rds', sep = '')
-  out.raw.bedgraph = paste(outdir, 'cov.bedgraph', sep = '/') # Neccesary? #' twalradt Monday, Apr 23, 2018 04:52:12 PM
   if (is.null(bam))
     {
       bam = ''
     }
-
-  if (is.null(cov))
-    {
-      cov = out.raw.rds
-    } else if (!file.exists(cov))
-      {
-        cov = out.raw.rds
-      }
-
   midpoint = grepl("(T)|(TRUE)", midpoint, ignore.case = T)
 
-  if (file.exists(bam) & !file.exists(cov))
+  if (file.exists(bam)) # & is.null(cov))
     {
       if (!midpoint)
         {
@@ -150,13 +139,9 @@ PrepareCov = function(bam, cov = NULL, midpoint = FALSE, window = 200, minmapq =
           cov = bam.cov.gr(bam, tiles, isPaired = NA, isProperPair = NA, hasUnmappedMate = NA)  ## counts midpoints of fragments
           cov$count = cov$records/width(cov)
         }
-       
-      saveRDS(cov, out.raw.rds)
-      cat('Finished saving coverage RDS\n')
-        
     }
 
-  else if (file.exists(cov))
+  else if (!is.null(cov))
     {
        cov = readRDS(cov)
     }
@@ -658,22 +643,25 @@ multicoco = function(cov,
 #' @param gc.rds.dir for tiles of width W, will look here for a file named gc{W}.rds in this directory
 #' @param map.rds.dir for tiles of width W will look here for a file named map{W}.rds in this directory
 
-fragCounter = function(bam, cov = NULL, midpoint = FALSE,window = 200, gc.rds.dir, map.rds.dir, minmapq = 1, paired = TRUE, outdir)
+fragCounter = function(bam, cov = NULL, midpoint = FALSE,window = 200, gc.rds.dir, map.rds.dir, minmapq = 1, paired = TRUE, outdir = NULL)
 {
   cov = PrepareCov(bam, cov = NULL, midpoint = FALSE, window = 200, minmapq = 1, paired = TRUE, outdir)
   cov = correctcov_stub(cov, gc.rds.dir = gc.rds.dir, map.rds.dir = map.rds.dir)
   cov$reads.corrected = multicoco(cov, numlevs = 1, base = max(10, 1e5/window), mc.cores = 1, fields = c('gc', 'map'), iterative = T, mono = T)$reads.corrected
-  out.rds = paste(outdir, '/cov.rds', sep = '')
-  out.corr = paste(gsub('.rds$', '', out.rds), '.corrected.bw', sep = '')
-  if (!is.null(tryCatch({library(rtracklayer); 'success'}, error = function(e) NULL)))
+  if (!is.null(outdir))
   {
-    cov.corr.out = cov
-    cov.corr.out$score = cov$reads.corrected
-    cov.corr.out$score[is.na(cov.corr.out$score)] = -1
-    cov.corr.out = cov.corr.out[width(cov.corr.out)==window] ## remove any funky widths at end of chromosome
-    export(cov.corr.out[, 'score'], out.corr, 'bigWig', dataFormat = 'fixedStep')
+    out.rds = paste(outdir, '/cov.rds', sep = '')
+    out.corr = paste(gsub('.rds$', '', out.rds), '.corrected.bw', sep = '')
+    if (!is.null(tryCatch({library(rtracklayer); 'success'}, error = function(e) NULL)))
+    {
+      cov.corr.out = cov
+      cov.corr.out$score = cov$reads.corrected
+      cov.corr.out$score[is.na(cov.corr.out$score)] = -1
+      cov.corr.out = cov.corr.out[width(cov.corr.out)==window] ## remove any funky widths at end of chromosome
+      export(cov.corr.out[, 'score'], out.corr, 'bigWig', dataFormat = 'fixedStep')
+    }
+    saveRDS(cov, paste(gsub('.rds$', '', out.rds), '.rds', sep = ''))
   }
-  saveRDS(cov, paste(gsub('.rds$', '', out.rds), '.rds', sep = ''))
   return(cov)
   cat('done\n')
 }

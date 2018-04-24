@@ -5,7 +5,7 @@
 \title{PrepareCov}
 \usage{
 PrepareCov(bam, cov = NULL, midpoint = FALSE, window = 200, minmapq = 1,
-  paired = TRUE, outdir)
+  paired = TRUE, outdir = NULL)
 }
 \arguments{
 \item{bam}{path to .bam file}

@@ -5,7 +5,7 @@
 \title{fragCounter}
 \usage{
 fragCounter(bam, cov = NULL, midpoint = FALSE, window = 200, gc.rds.dir,
-  map.rds.dir, minmapq = 1, paired = TRUE, outdir)
+  map.rds.dir, minmapq = 1, paired = TRUE, outdir = NULL)
 }
 \arguments{
 \item{bam}{path to .bam file}
