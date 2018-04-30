@@ -3,6 +3,7 @@
 #' @import data.table
 #' @import rtracklayer
 #' @import bamUtils
+#' @import ffTrack
 
 
 
