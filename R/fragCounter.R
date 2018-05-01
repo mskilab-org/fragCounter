@@ -4,6 +4,7 @@
 #' @import rtracklayer
 #' @import bamUtils
 #' @import ffTrack
+#' @import GenomeInfoDb
 
 
 
@@ -148,7 +149,6 @@ PrepareCov = function(bam, cov = NULL, midpoint = FALSE, window = 200, minmapq =
 #' @export
 
 correctcov_stub = function(cov.wig, mappability = 0.9, samplesize = 5e4, verbose = T, gc.rds.dir, map.rds.dir) {
-  browser()
   if (is.character(cov.wig)) {
     if (grepl('(\\.bedgraph$)|(\\.wig$)|(\\.bw$)', cov.wig)) {
       cov = import.ucsc(cov.wig)
@@ -194,7 +194,7 @@ correctcov_stub = function(cov.wig, mappability = 0.9, samplesize = 5e4, verbose
   map = map[match(all.str, map.str)]
   cov = cov[match(all.str, cov.str)]
   gc = gc[match(all.str, gc.str)]        
-  if (length(cov) != length(gc) | length(gc) != length(map) | (length(cov))/n<0.1) {
+  if (length(cov) != length(gc) | length(gc) != length(map)) {
     stop('Mismatch / problem in cov, gc, or map definition.  Check if they come from the same width tiling')
   }  
   cov$reads = cov$score
@@ -284,7 +284,7 @@ multicoco = function(cov, numlevs = 1, base = max(10,1e5/max(width(cov))), field
         seg = seg2gr(seg.dt[, list(seqnames = seqnames,
                                    start = ifelse(c(FALSE, seqnames[-length(seqnames)]==seqnames[-1]), c(1, start[-1]), 1),
                                    end = ifelse(c(seqnames[-length(seqnames)]==seqnames[-1], FALSE), c(start[-1]-1, Inf), seqlengths(seg)[as.character(seqnames)]))], seqlengths = sl)
-        seg = gr.val(seg, tmp.cov, 'reads') ## populate with mean coverage
+        Seg = gr.val(seg, tmp.cov, 'reads') ## populate with mean coverage
         seg$reads = seg$reads/sum(as.numeric(seg$reads*width(seg))/sum(as.numeric(width(seg)))) ## normalize segs by weigthed mean (so these become a correction factor)
       }
       else {
@@ -379,7 +379,7 @@ multicoco = function(cov, numlevs = 1, base = max(10,1e5/max(width(cov))), field
           x2s$reads = x2s$reads/x.grs$reads
         }
         fit = tryCatch(loess(reads ~ covariate, data = x2s, span = 0.3), error = function(e) NULL)
-        x$reads = NA                            
+        x$reads = NA
         if (!is.null(fit)) {
           if (is.na(fit$s)) {
             warning("Using all points since initial loess failed")
