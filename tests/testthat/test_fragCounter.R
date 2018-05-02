@@ -28,44 +28,46 @@ cov21 = 'cov21.rds'
 
 cov = readRDS('samp.rds')
 
-## test_that("MAP.fun", {
+test_that("MAP.fun", {
 
-##   expect_equal(length(MAP.fun(twobitURL = twobit, bw.path = bw)), 240650)
-##   expect_equal(length(MAP.fun(twobitURL = twobit, bw.path = bw) %Q% (score > 0)), 171124)
+  expect_equal(length(MAP.fun(twobitURL = twobit, bw.path = bw)), 240650)
+  expect_equal(length(MAP.fun(twobitURL = twobit, bw.path = bw) %Q% (score > 0)), 171124)
 
-## })
-
-
-
-## test_that("GC.fun", {
-
-##   expect_equal(length(GC.fun(twobitURL = twobit)), 240650)
-##   expect_equal(length(GC.fun(twobitURL =twobit) %Q% (score > 0)), 175542)
-
-## })
+})
 
 
-## test_that("PrepareCov", {
 
-##   expect_error(PrepareCov(bam = NULL, cov = NULL))
-##   expect_equal(length(PrepareCov(example_bam)), 15509063)
-##   expect_equal(max(width(PrepareCov(example_bam))), 200)
-## #  expect_equal(length(PrepareCov(example_bam, paired = FALSE)), 15509063)
-## #  expect_equal(max(width(PrepareCov(example_bam, paired = FALSE))), 200)
+test_that("GC.fun", {
 
-## })
+  expect_equal(length(GC.fun(twobitURL = twobit)), 240650)
+  expect_equal(length(GC.fun(twobitURL =twobit) %Q% (score > 0)), 175542)
+
+})
 
 
-## test_that("correctcov_stub", {
+test_that("PrepareCov", {
 
-##     expect_equal(length(correctcov_stub(cov.wig = cov21, gc.rds.dir = "gcMAP21", map.rds.dir = "gcMAP21")), 234722)
+  expect_error(PrepareCov(bam = NULL, cov = NULL))
+  expect_equal(length(PrepareCov(example_bam)), 15509063)
+  expect_equal(max(width(PrepareCov(example_bam))), 200)
+#  expect_equal(length(PrepareCov(example_bam, paired = FALSE)), 15509063)
+#  expect_equal(max(width(PrepareCov(example_bam, paired = FALSE))), 200)
 
-## })
+})
+
+
+test_that("correctcov_stub", {
+
+    expect_equal(length(correctcov_stub(cov.wig = cov21, gc.rds.dir = "gcMAP21", map.rds.dir = "gcMAP21")), 234722)
+
+})
 
 
 test_that("multicoco", {
 
     expect_equal(length(multicoco(cov)), 50001)
+    expect_equal(sum(!is.na(multicoco(cov)$reads.corrected)), 48888)
+    expect_equal(sum(!is.na(multicoco(cov, mono = TRUE)$reads.corrected)), 49571)
 
 })
 
