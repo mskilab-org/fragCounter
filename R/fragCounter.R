@@ -4,8 +4,6 @@
 #' @import rtracklayer
 #' @import bamUtils
 #' @import ffTrack
-#' @import GenomeInfoDb
-
 
 
 #' @title Mappability calculator
