@@ -9,23 +9,23 @@ presegment = TRUE, min.segwidth = 5e6, mono = FALSE, verbose = TRUE,
 FUN = NULL, mc.cores = 1)
 }
 \arguments{
-\item{cov}{constant with GRanges of coverage samples with (by default) fields $reads, $map, $gc}
+\item{cov}{GRanges constant with GRanges of coverage samples with (by default) fields $reads, $map, $gc}
 
-\item{numlevs}{numbers of scales at which to correct}
+\item{numlevs}{integer numbers of scales at which to correct}
 
-\item{base}{Scale multiplier}
+\item{base}{integer Scale multiplier}
 
-\item{fields}{fields of gc to use as covariates}
+\item{fields}{character vector fields of gc to use as covariates}
 
-\item{iterative}{whether to iterate}
+\item{iterative}{boolean whether to iterate}
 
-\item{presegment}{whether to presegment}
+\item{presegment}{boolean whether to presegment}
 
-\item{min.segwidth}{when presegmenting, minimum segment width}
+\item{min.segwidth}{integer when presegmenting, minimum segment width}
 
-\item{mono}{Wether to only do single iteration at finest scale}
+\item{mono}{boolean Wether to only do single iteration at finest scale}
 
-\item{verbose}{Wether to print log to console}
+\item{verbose}{boolean Wether to print log to console}
 
 \item{FUN}{function with which to correct coverage (by default loess
 correction modified from HMMcopy that takes in granges with fields
@@ -33,7 +33,7 @@ $reads and other fields specified in "fields"}
 
 \item{...}{additional args to FUN}
 
-\item{mc.cores}{Number of cores to use}
+\item{mc.cores}{integer Number of cores to use}
 }
 \description{
 Given gc and mappability coverage correction at k "nested" scales finds the coverage

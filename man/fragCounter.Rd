@@ -8,23 +8,23 @@ fragCounter(bam, cov = NULL, midpoint = FALSE, window = 200, gc.rds.dir,
   map.rds.dir, minmapq = 1, paired = TRUE, outdir = NULL)
 }
 \arguments{
-\item{bam}{path to .bam file}
+\item{bam}{string path to .bam file}
 
-\item{cov}{Path to existing coverage rds or bedgraph}
+\item{cov}{string path to existing coverage rds or bedgraph}
 
-\item{midpoint}{If TRUE only count midpoint if FALSE then count bin footprint of every fragment interval}
+\item{midpoint}{boolean If TRUE only count midpoint if FALSE then count bin footprint of every fragment interval}
 
-\item{window}{window / bin size}
+\item{window}{integer window / bin size}
 
-\item{gc.rds.dir}{for tiles of width W, will look here for a file named gc{W}.rds in this directory}
+\item{gc.rds.dir}{string for tiles of width W, will look here for a file named gc{W}.rds in this directory}
 
-\item{map.rds.dir}{for tiles of width W will look here for a file named map{W}.rds in this directory}
+\item{map.rds.dir}{string for tiles of width W will look here for a file named map{W}.rds in this directory}
 
-\item{minmapq}{Minimal map quality}
+\item{minmapq}{double Minimal map quality}
 
-\item{paired}{wether or not paired}
+\item{paired}{boolean wether or not paired}
 
-\item{outdir}{Directory to dump output into}
+\item{outdir}{string Directory to dump output into}
 }
 \description{
 Runs entire fragCounter pipeline

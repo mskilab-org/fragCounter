@@ -8,14 +8,14 @@ GC.fun(win.size = 200, twobitURL = "~/DB/UCSC/hg19.2bit",
   twobit.win = 1000, mc.cores = 15)
 }
 \arguments{
-\item{win.size}{Window size, in basepairs, to calculate GC content for (should match window
+\item{win.size}{integer Window size, in basepairs, to calculate GC content for (should match window
 size of your coverage file}
 
-\item{twobitURL}{URL to twobit genome file. Default is hg19 from UCSC}
+\item{twobitURL}{string URL to twobit genome file. Default is hg19 from UCSC}
 
-\item{twobit.win}{How many windows of the twobit file to load into memory on each core}
+\item{twobit.win}{integer How many windows of the twobit file to load into memory on each core}
 
-\item{mc.cores}{How many cores to use}
+\item{mc.cores}{integer How many cores to use}
 }
 \description{
 Calculates GC content across the genome for a given sized window

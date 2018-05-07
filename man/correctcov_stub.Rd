@@ -11,15 +11,15 @@ correctcov_stub(cov.wig, mappability = 0.9, samplesize = 50000,
 \item{cov.wig}{wig file of coverage tiles of width W or pointer to rds file
 of sorted GRanges object or GRanges object}
 
-\item{mappability}{threshold for mappability score}
+\item{mappability}{double threshold for mappability score}
 
-\item{samplesize}{size of sub-sample}
+\item{samplesize}{integer size of sub-sample}
 
-\item{verbose}{Wether to print log to console}
+\item{verbose}{boolean Wether to print log to console}
 
-\item{gc.rds.dir}{for tiles of width W, will look here for a file named gc{W}.rds in this directory}
+\item{gc.rds.dir}{string for tiles of width W, will look here for a file named gc{W}.rds in this directory}
 
-\item{map.rds.dir}{for tiles of width W will look here for a file named map{W}.rds in this directory}
+\item{map.rds.dir}{string for tiles of width W will look here for a file named map{W}.rds in this directory}
 }
 \description{
 Prepares GC, mappability, and coverage files for multicoco

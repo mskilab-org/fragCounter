@@ -9,12 +9,12 @@
 #' @title Mappability calculator
 #' @description Calculates mappability as fraction of bases in a tile with mappability of 1
 #' @name MAP.fun
-#' @param win.size Window size, in basepairs, to calculate mappability for (should match window
+#' @param win.size integer Window size, in basepairs, to calculate mappability for (should match window
 #' size of your coverage file
-#' @param twobitURL URL to twobit genome file. Default is hg19 from UCSC
-#' @param bw.path Path to .bigWig mappability file
-#' @param twobit.win How many windows of the twobit file to load into memory on each core
-#' @param mc.cores How many cores to use
+#' @param twobitURL string URL to twobit genome file. Default is hg19 from UCSC
+#' @param bw.path string Path to .bigWig mappability file
+#' @param twobit.win integer How many windows of the twobit file to load into memory on each core
+#' @param mc.cores integer How many cores to use
 #' @author Marcin Imielinski
 #' @export
 
@@ -47,11 +47,11 @@ MAP.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', bw.path = 
 #' @title GC content calculator
 #' @description Calculates GC content across the genome for a given sized window
 #' @name GC.fun
-#' @param win.size Window size, in basepairs, to calculate GC content for (should match window
+#' @param win.size integer Window size, in basepairs, to calculate GC content for (should match window
 #' size of your coverage file
-#' @param twobitURL URL to twobit genome file. Default is hg19 from UCSC
-#' @param twobit.win How many windows of the twobit file to load into memory on each core
-#' @param mc.cores How many cores to use
+#' @param twobitURL string URL to twobit genome file. Default is hg19 from UCSC
+#' @param twobit.win integer How many windows of the twobit file to load into memory on each core
+#' @param mc.cores integer How many cores to use
 #' @author Marcin Imielinski
 #' @export
 
@@ -69,7 +69,6 @@ GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win 
     return(out)
   }
   gc.out = mclapply(x, gc.con, mc.cores = mc.cores)
-browser()
     gc.out = rbindlist(gc.out)
   if (!is.integer(length(tiles)/twobit.win)){
     edge.num = seq(twobit.win*max(x)+1,length(tiles))
@@ -140,11 +139,11 @@ PrepareCov = function(bam, cov = NULL, midpoint = FALSE, window = 200, minmapq =
 #' @name correctcov_stub
 #' @param cov.wig wig file of coverage tiles of width W or pointer to rds file
 #' of sorted GRanges object or GRanges object
-#' @param mappability threshold for mappability score
-#' @param samplesize size of sub-sample
-#' @param verbose Wether to print log to console
-#' @param gc.rds.dir for tiles of width W, will look here for a file named gc{W}.rds in this directory
-#' @param map.rds.dir for tiles of width W will look here for a file named map{W}.rds in this directory
+#' @param mappability double threshold for mappability score
+#' @param samplesize integer size of sub-sample
+#' @param verbose boolean Wether to print log to console
+#' @param gc.rds.dir string for tiles of width W, will look here for a file named gc{W}.rds in this directory
+#' @param map.rds.dir string for tiles of width W will look here for a file named map{W}.rds in this directory
 #' @author Marcin Imielinski
 #' @export
 
@@ -216,20 +215,20 @@ correctcov_stub = function(cov.wig, mappability = 0.9, samplesize = 5e4, verbose
 #' @description Given gc and mappability coverage correction at k "nested" scales finds the coverage
 #' assignment at the finest scale that yields the best correction at every scale
 #' @name multicoco
-#' @param cov constant with GRanges of coverage samples with (by default) fields $reads, $map, $gc
-#' @param numlevs numbers of scales at which to correct
-#' @param base Scale multiplier
-#' @param fields fields of gc to use as covariates
-#' @param iterative whether to iterate
-#' @param presegment whether to presegment
-#' @param min.segwidth when presegmenting, minimum segment width
-#' @param mono Wether to only do single iteration at finest scale
-#' @param verbose Wether to print log to console
+#' @param cov GRanges constant with GRanges of coverage samples with (by default) fields $reads, $map, $gc
+#' @param numlevs integer numbers of scales at which to correct
+#' @param base integer Scale multiplier
+#' @param fields character vector fields of gc to use as covariates
+#' @param iterative boolean whether to iterate
+#' @param presegment boolean whether to presegment
+#' @param min.segwidth integer when presegmenting, minimum segment width
+#' @param mono boolean Wether to only do single iteration at finest scale
+#' @param verbose boolean Wether to print log to console
 #' @param FUN function with which to correct coverage (by default loess
 #' correction modified from HMMcopy that takes in granges with fields
 #' $reads and other fields specified in "fields"
 #' @param ... additional args to FUN
-#' @param mc.cores Number of cores to use
+#' @param mc.cores integer Number of cores to use
 #' @author Marcin Imielinski
 #' @usage multicoco(cov, numlevs = 1, fields = c("gc", "map"), iterative = TRUE,
 #' presegment = TRUE, min.segwidth = 5e6, mono = FALSE, verbose = TRUE,
@@ -451,15 +450,15 @@ multicoco = function(cov, numlevs = 1, base = max(10,1e5/max(width(cov))), field
 #' @title fragCounter
 #' @description Runs entire fragCounter pipeline
 #' @author Marcin Imielinski
-#' @param bam path to .bam file
-#' @param cov Path to existing coverage rds or bedgraph 
-#' @param midpoint If TRUE only count midpoint if FALSE then count bin footprint of every fragment interval
-#' @param window window / bin size
-#' @param minmapq Minimal map quality
-#' @param paired wether or not paired
-#' @param outdir Directory to dump output into
-#' @param gc.rds.dir for tiles of width W, will look here for a file named gc{W}.rds in this directory
-#' @param map.rds.dir for tiles of width W will look here for a file named map{W}.rds in this directory
+#' @param bam string path to .bam file
+#' @param cov string path to existing coverage rds or bedgraph 
+#' @param midpoint boolean If TRUE only count midpoint if FALSE then count bin footprint of every fragment interval
+#' @param window integer window / bin size
+#' @param minmapq double Minimal map quality
+#' @param paired boolean wether or not paired
+#' @param outdir string Directory to dump output into
+#' @param gc.rds.dir string for tiles of width W, will look here for a file named gc{W}.rds in this directory
+#' @param map.rds.dir string for tiles of width W will look here for a file named map{W}.rds in this directory
 #' @export
 
 fragCounter = function(bam, cov = NULL, midpoint = FALSE,window = 200, gc.rds.dir, map.rds.dir, minmapq = 1, paired = TRUE, outdir = NULL) {
