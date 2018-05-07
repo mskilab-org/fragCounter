@@ -56,7 +56,6 @@ MAP.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', bw.path = 
 #' @export
 
 GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win = 1e3, mc.cores = 15) {
-
     tiles = gr.tile(seqlengths(TwoBitFile(twobitURL)),win.size)
   values(tiles) = NULL
   tiles = tiles %Q% (seqnames %in% c(paste0("chr",seq(1,22)),"chrX","chrY")) # removes all chromomes except 1:22 and X/Y
@@ -64,7 +63,7 @@ GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win 
   gc.con = function(x) {
     this.ix = seq(1 + ((x-1) * twobit.win), x * twobit.win)
     # print(this.ix[1])
-    tmp = alphabetFrequency(get_seq(twobitURL, tiles[this.ix]))
+    tmp = alphabetFrequency(ffTrack::get_seq(twobitURL, tiles[this.ix]))
     out = data.table(gc = rowSums(tmp[, c('C', 'G')])/rowSums(tmp), index = this.ix)
     return(out)
   }
@@ -72,7 +71,7 @@ GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win 
     gc.out = rbindlist(gc.out)
   if (!is.integer(length(tiles)/twobit.win)){
     edge.num = seq(twobit.win*max(x)+1,length(tiles))
-    tmp.edge = alphabetFrequency(get_seq(twobitURL, tiles[edge.num]))
+    tmp.edge = alphabetFrequency(ffTrack::get_seq(twobitURL, tiles[edge.num]))
     edge.out = data.table(gc = rowSums(tmp.edge[, c('C', 'G')])/rowSums(tmp.edge), index = edge.num)
     gc.out = rbind(gc.out, edge.out)
   }
