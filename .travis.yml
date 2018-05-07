@@ -17,6 +17,7 @@ install:
    - ./travis-tool.sh install_deps
    - ./travis-tool.sh install_github r-lib/covr
    - ./travis-tool.sh install_github mskilab/gUtils
+   - ./travis-tool.sh install_github mskilab/bamUtils
    - ./travis-tool.sh install_github mskilab/ffTrack
 
 script: ./travis-tool.sh run_tests
