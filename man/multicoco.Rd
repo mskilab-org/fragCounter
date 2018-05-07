@@ -4,8 +4,8 @@
 \alias{multicoco}
 \title{Multi-scale coverage correction}
 \usage{
-multicoco(cov, numlevs = 1, fiedls = c("gc", "map"), iterative = TRUE,
-presegment = "TRUE", min.segwidth = 5e6, mono = FALSE, verbose = TRUE,
+multicoco(cov, numlevs = 1, fields = c("gc", "map"), iterative = TRUE,
+presegment = TRUE, min.segwidth = 5e6, mono = FALSE, verbose = TRUE,
 FUN = NULL, mc.cores = 1)
 }
 \arguments{
@@ -13,7 +13,11 @@ FUN = NULL, mc.cores = 1)
 
 \item{numlevs}{numbers of scales at which to correct}
 
+\item{base}{Scale multiplier}
+
 \item{fields}{fields of gc to use as covariates}
+
+\item{iterative}{whether to iterate}
 
 \item{presegment}{whether to presegment}
 
@@ -29,7 +33,7 @@ $reads and other fields specified in "fields"}
 
 \item{...}{additional args to FUN}
 
-\item{interative}{whether to iterate}
+\item{mc.cores}{Number of cores to use}
 }
 \description{
 Given gc and mappability coverage correction at k "nested" scales finds the coverage

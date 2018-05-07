@@ -5,7 +5,7 @@
 \title{GC content calculator}
 \usage{
 GC.fun(win.size = 200, twobitURL = "~/DB/UCSC/hg19.2bit",
-  twobit.win = 1000, mc.cores = 10)
+  twobit.win = 1000, mc.cores = 15)
 }
 \arguments{
 \item{win.size}{Window size, in basepairs, to calculate GC content for (should match window

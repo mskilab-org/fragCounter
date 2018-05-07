@@ -1,0 +1,37 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "README-"
+)
+```
+
+[![Build Status](https://travis-ci.org/mskilab/fragCounter.svg?branch=master)](https://travis-ci.org/mskilab/fragCounter)
+[![codecov.io](https://img.shields.io/codecov/c/github/mskilab/fragCounter.svg)](https://codecov.io/github/mskilab/fragCounter?branch=master)
+
+# fragCounter
+
+The goal of fragCounter is to ...
+
+## Installation
+
+You can install fragCounter from github with:
+
+```{r gh-installation, eval = FALSE}
+# install.packages("devtools")
+devtools::install_github("mskilab/fragCounter")
+```
+
+## Example
+
+This is a basic example which shows you how to solve a common problem:
+
+```{r example}
+## basic example code
+```

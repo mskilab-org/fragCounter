@@ -3,7 +3,7 @@
 #' @import data.table
 #' @import rtracklayer
 #' @import bamUtils
-#' @import ffTrack
+#' @importFrom stats cor loess predict quantile
 
 
 #' @title Mappability calculator
@@ -55,8 +55,9 @@ MAP.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', bw.path = 
 #' @author Marcin Imielinski
 #' @export
 
-GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win = 1e3, mc.cores = 10) {
-  tiles = gr.tile(seqlengths(TwoBitFile(twobitURL)),win.size)
+GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win = 1e3, mc.cores = 15) {
+
+    tiles = gr.tile(seqlengths(TwoBitFile(twobitURL)),win.size)
   values(tiles) = NULL
   tiles = tiles %Q% (seqnames %in% c(paste0("chr",seq(1,22)),"chrX","chrY")) # removes all chromomes except 1:22 and X/Y
   x = seq(1,(length(tiles) / twobit.win))
@@ -68,7 +69,8 @@ GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win 
     return(out)
   }
   gc.out = mclapply(x, gc.con, mc.cores = mc.cores)
-  gc.out = rbindlist(gc.out)
+browser()
+    gc.out = rbindlist(gc.out)
   if (!is.integer(length(tiles)/twobit.win)){
     edge.num = seq(twobit.win*max(x)+1,length(tiles))
     tmp.edge = alphabetFrequency(get_seq(twobitURL, tiles[edge.num]))
@@ -216,8 +218,9 @@ correctcov_stub = function(cov.wig, mappability = 0.9, samplesize = 5e4, verbose
 #' @name multicoco
 #' @param cov constant with GRanges of coverage samples with (by default) fields $reads, $map, $gc
 #' @param numlevs numbers of scales at which to correct
+#' @param base Scale multiplier
 #' @param fields fields of gc to use as covariates
-#' @param interative whether to iterate
+#' @param iterative whether to iterate
 #' @param presegment whether to presegment
 #' @param min.segwidth when presegmenting, minimum segment width
 #' @param mono Wether to only do single iteration at finest scale
@@ -226,14 +229,15 @@ correctcov_stub = function(cov.wig, mappability = 0.9, samplesize = 5e4, verbose
 #' correction modified from HMMcopy that takes in granges with fields
 #' $reads and other fields specified in "fields"
 #' @param ... additional args to FUN
+#' @param mc.cores Number of cores to use
 #' @author Marcin Imielinski
-#' @usage multicoco(cov, numlevs = 1, fiedls = c("gc", "map"), iterative = TRUE,
-#' presegment = "TRUE", min.segwidth = 5e6, mono = FALSE, verbose = TRUE,
+#' @usage multicoco(cov, numlevs = 1, fields = c("gc", "map"), iterative = TRUE,
+#' presegment = TRUE, min.segwidth = 5e6, mono = FALSE, verbose = TRUE,
 #' FUN = NULL, mc.cores = 1)
 #' @export
 
 multicoco = function(cov, numlevs = 1, base = max(10,1e5/max(width(cov))), fields = c("gc", "map"), iterative = TRUE,
-                     presegment = TRUE, min.segwidth = 5e6, mono = FALSE, verbose = T, FUN = NULL, ..., mc.cores = 1) {
+                     presegment = TRUE, min.segwidth = 5e6, mono = FALSE, verbose = TRUE, FUN = NULL, ..., mc.cores = 1) {
   if (verbose) {
     cat('Converting to data.table\n')
   }
@@ -456,6 +460,7 @@ multicoco = function(cov, numlevs = 1, base = max(10,1e5/max(width(cov))), field
 #' @param outdir Directory to dump output into
 #' @param gc.rds.dir for tiles of width W, will look here for a file named gc{W}.rds in this directory
 #' @param map.rds.dir for tiles of width W will look here for a file named map{W}.rds in this directory
+#' @export
 
 fragCounter = function(bam, cov = NULL, midpoint = FALSE,window = 200, gc.rds.dir, map.rds.dir, minmapq = 1, paired = TRUE, outdir = NULL) {
   cov = PrepareCov(bam, cov = NULL, midpoint = FALSE, window = 200, minmapq = 1, paired = TRUE, outdir)
