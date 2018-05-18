@@ -2,10 +2,10 @@
 % Please edit documentation in R/fragCounter.R
 \name{correctcov_stub}
 \alias{correctcov_stub}
-\title{Correct coverage}
+\title{Correct coverage stub}
 \usage{
 correctcov_stub(cov.wig, mappability = 0.9, samplesize = 50000,
-  verbose = T, gc.rds.dir, map.rds.dir)
+  verbose = T, gc.rds.dir, map.rds.dir, exome = FALSE)
 }
 \arguments{
 \item{cov.wig}{wig file of coverage tiles of width W or pointer to rds file
@@ -20,10 +20,12 @@ of sorted GRanges object or GRanges object}
 \item{gc.rds.dir}{string for tiles of width W, will look here for a file named gc{W}.rds in this directory}
 
 \item{map.rds.dir}{string for tiles of width W will look here for a file named map{W}.rds in this directory}
+
+\item{exome}{boolean If TRUE, look in gc/map.rds.dir for files called 'gcexome.rds' and 'mapexome.rds'}
 }
 \description{
 Prepares GC, mappability, and coverage files for multicoco
 }
 \author{
-Marcin Imielinski
+Trent Walradt
 }

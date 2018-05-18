@@ -5,7 +5,7 @@
 \title{PrepareCov}
 \usage{
 PrepareCov(bam, cov = NULL, midpoint = FALSE, window = 200, minmapq = 1,
-  paired = TRUE, outdir = NULL)
+  paired = TRUE, outdir = NULL, exome = FALSE)
 }
 \arguments{
 \item{bam}{path to .bam file}
@@ -21,10 +21,14 @@ PrepareCov(bam, cov = NULL, midpoint = FALSE, window = 200, minmapq = 1,
 \item{paired}{wether or not paired}
 
 \item{outdir}{Directory to dump output into}
+
+\item{exome}{boolean If TRUE, use bam.cov.exome to calculate coverage}
 }
 \description{
 Load BAM or coverage file and prepare for use in correctcov_stub
 }
 \author{
 Marcin Imielinski
+
+Trent Walradt
 }

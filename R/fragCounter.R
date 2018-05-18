@@ -24,13 +24,16 @@
 #' $reads and other fields specified in "fields"
 #' @param ... additional args to FUN
 #' @param mc.cores integer Number of cores to use
+#' @param exome boolean If TRUE, perform correction using exons as bins instead of fixed size
 #' @author Marcin Imielinski
-#' @usage multicoco(cov, numlevs = 1, base = max(10, 1e5/max(width(cov))), fields = c("gc", "map"), iterative = TRUE,
-#' presegment = TRUE, min.segwidth = 5e6, mono = FALSE, verbose = TRUE,
-#' FUN = NULL, mc.cores = 1)
+#' @usage multicoco(cov, numlevs = 1, base = max(10, 1e5/max(width(cov))),
+#' fields = c("gc", "map"), iterative = TRUE, presegment = TRUE,
+#' min.segwidth = 5e6, mono = TRUE, verbose = TRUE, FUN = NULL, mc.cores = 1)
 #' @export
 
-multicoco = function(cov, numlevs = 1, base = max(10, 1e5 / max(width(cov))), fields = c("gc", "map"), iterative = TRUE, presegment = TRUE, min.segwidth = 5e6, mono = TRUE, verbose = TRUE,
+multicoco = function(cov, numlevs = 1, base = max(10, 1e5 / max(width(cov))),
+                     fields = c("gc", "map"), iterative = TRUE, presegment = TRUE,
+                     min.segwidth = 5e6, mono = TRUE, verbose = TRUE,
                      FUN = NULL, ..., mc.cores = 1, exome = FALSE) {
   if (verbose) {
     cat('Converting to data.table\n')
@@ -300,7 +303,7 @@ fragCounter = function(bam, cov = NULL, midpoint = FALSE,window = 200, gc.rds.di
 
 #' @name bam.cov.exome
 #' @title Get coverage as GRanges from BAM using exons as tiles
-#'
+#' @description
 #' Quick way to get tiled coverage via piping to samtools (e.g. ~10 CPU-hours for 100bp tiles, 5e8 read pairs)
 #'
 #' Gets coverage for exons, pulling "chunksize" records at a time and incrementing bin
@@ -325,22 +328,11 @@ bam.cov.exome = function(bam.file, chunksize = 1e5, min.mapq = 30, verbose = TRU
     if (!identical(check_valid_bam, 'BAM\1')){
         stop("Cannot open BAM. A valid BAM for 'bam_file' must be provided.")
     }
-
   cmd = 'samtools view %s %s -q %s | cut -f "3,4,9"' ## cmd line to grab the rname, pos, and tlen columns
-
-  ## ## Done for testing
-  ## sl = seqlengths(BamFile(bam.file))
-  ## window = 200
-  ## sl.dt = data.table(chr = names(sl), len = sl)
-  ## counts = sl.dt[, list(start = seq(1, len, window)), by = chr]
-  ## counts = counts[, bin := 1:length(start), by = chr]
-  ## counts[, end := pmin(start + window-1, sl[chr])]
-  ## exome = dt2gr(counts)
   exome = reduce(read_gencode('exon'))
   numwin = length(exome)
   cat('Calling', sprintf(cmd, st.flag, bam.file, min.mapq), '\n')
   p = pipe(sprintf(cmd, st.flag, bam.file, min.mapq), open = 'r')
-
   i = 0
   counts = gr2dt(exome)
   counts[, ':=' (strand = NULL, width = NULL)]
@@ -350,12 +342,10 @@ bam.cov.exome = function(bam.file, chunksize = 1e5, min.mapq = 30, verbose = TRU
   counts[, rowid := 1:length(count)]
   setkeyv(counts, c("chr", "bin")) ## now we can quickly populate the right entries
   totreads = 0
-
   st = Sys.time()
   if (verbose){
     cat('Starting fragment count on', bam.file, 'and min mapQ', min.mapq, 'and   insert size limit', max.tlen, '\n')
   }
-
   while (length(chunk <- readLines(p, n = chunksize)) > 0)
   {
     i = i+1
@@ -387,7 +377,6 @@ bam.cov.exome = function(bam.file, chunksize = 1e5, min.mapq = 30, verbose = TRU
   x = data.table(chr = c(1:22, "X", "Y", "M"), order = 1:25)
   counts[, order := x$order[match(chr, x$chr)]]
   counts = counts[order(order)][, order := NULL]
-
   exome$counts = counts$count
     if (verbose){
       cat("Finished computing coverage, and making GRanges\n")
@@ -441,8 +430,6 @@ MAP.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', bw.path = 
 }
 
 
-
-
 #' @title GC content calculator
 #' @description Calculates GC content across the genome for a given sized window
 #' @name GC.fun
@@ -462,7 +449,6 @@ GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win 
   } else {
     tiles = gr.tile(seqlengths(TwoBitFile(twobitURL)),win.size)
   }
-
   values(tiles) = NULL
   tiles = tiles %Q% (seqnames %in% c(paste0("chr",seq(1,22)),"chrX","chrY")) # removes all chromomes except 1:22 and X/Y
   x = seq(1,(length(tiles) / twobit.win))
@@ -505,7 +491,6 @@ GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win 
 #' @export
 
 PrepareCov = function(bam, cov = NULL, midpoint = FALSE, window = 200, minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE) {
-
   if (exome == TRUE){
     cov = bam.cov.exome(bam, chunksize = 1e6, min.mapq = 1)
   } else {
@@ -559,7 +544,7 @@ PrepareCov = function(bam, cov = NULL, midpoint = FALSE, window = 200, minmapq =
 #' @author Trent Walradt
 #' @export
 
-correctcov_stub = function(cov.wig, mappability = 0.9, samplesize = 5e4, verbose = T, gc.rds.dir, map.rds.dir, exome = TRUE) {
+correctcov_stub = function(cov.wig, mappability = 0.9, samplesize = 5e4, verbose = T, gc.rds.dir, map.rds.dir, exome = FALSE) {
   if (is.character(cov.wig)) {
     if (grepl('(\\.bedgraph$)|(\\.wig$)|(\\.bw$)', cov.wig)) {
       cov = import.ucsc(cov.wig)
@@ -667,7 +652,6 @@ coco = function(cov, base = max(10, 1e5 / max(width(cov))), fields = c("gc", "ma
   }
   ##  -.01 just to make Trent Happy ie produce identical result to above
   cov.dt[, lev1 :=  as.character(sl[seqnames] + ceiling((1:.N-0.01)/base)), by = seqnames]
-
   if (presegment) { ## perform rough segmentation at highest level
     seg = NULL
     sl = seqlengths(cov)
@@ -715,7 +699,6 @@ coco = function(cov, base = max(10, 1e5 / max(width(cov))), fields = c("gc", "ma
   else {
     seg = NULL
   }
-
   ## modified from HMMCopy to
   ## (1) take arbitrary set of covariates, specified by fields vector
   ## (2) employ as input an optional preliminary (coarse) segmentation with which to adjust signal immediately prior to loess

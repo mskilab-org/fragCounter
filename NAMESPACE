@@ -3,6 +3,8 @@
 export(GC.fun)
 export(MAP.fun)
 export(PrepareCov)
+export(bam.cov.exome)
+export(coco)
 export(correctcov_stub)
 export(fragCounter)
 export(multicoco)

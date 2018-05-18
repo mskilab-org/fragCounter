@@ -5,7 +5,7 @@
 \title{fragCounter}
 \usage{
 fragCounter(bam, cov = NULL, midpoint = FALSE, window = 200, gc.rds.dir,
-  map.rds.dir, minmapq = 1, paired = TRUE, outdir = NULL)
+  map.rds.dir, minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE)
 }
 \arguments{
 \item{bam}{string path to .bam file}
@@ -25,6 +25,8 @@ fragCounter(bam, cov = NULL, midpoint = FALSE, window = 200, gc.rds.dir,
 \item{paired}{boolean wether or not paired}
 
 \item{outdir}{string Directory to dump output into}
+
+\item{exome}{boolean If TRUE, perform correction using exons as bins instead of fixed size}
 }
 \description{
 Runs entire fragCounter pipeline

@@ -6,7 +6,7 @@
 \usage{
 MAP.fun(win.size = 200, twobitURL = "~/DB/UCSC/hg19.2bit",
   bw.path = "~/DB/UCSC/wgEncodeCrgMapabilityAlign100mer.bigWig",
-  twobit.win = 1000, mc.cores = 10)
+  twobit.win = 1000, mc.cores = 10, exome = FALSE)
 }
 \arguments{
 \item{win.size}{integer Window size, in basepairs, to calculate mappability for (should match window
@@ -19,10 +19,12 @@ size of your coverage file}
 \item{twobit.win}{integer How many windows of the twobit file to load into memory on each core}
 
 \item{mc.cores}{integer How many cores to use}
+
+\item{exome}{boolean If TRUE, calculate mappability for exons instead of window}
 }
 \description{
 Calculates mappability as fraction of bases in a tile with mappability of 1
 }
 \author{
-Marcin Imielinski
+Trent Walradt
 }
