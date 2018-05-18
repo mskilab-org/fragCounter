@@ -6,210 +6,6 @@
 #' @importFrom stats cor loess predict quantile
 
 
-#' @title Mappability calculator
-#' @description Calculates mappability as fraction of bases in a tile with mappability of 1
-#' @name MAP.fun
-#' @param win.size integer Window size, in basepairs, to calculate mappability for (should match window
-#' size of your coverage file
-#' @param twobitURL string URL to twobit genome file. Default is hg19 from UCSC
-#' @param bw.path string Path to .bigWig mappability file
-#' @param twobit.win integer How many windows of the twobit file to load into memory on each core
-#' @param mc.cores integer How many cores to use
-#' @author Marcin Imielinski
-#' @export
-
-MAP.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', bw.path = '~/DB/UCSC/wgEncodeCrgMapabilityAlign100mer.bigWig', twobit.win = 1e3, mc.cores = 10) {
-  tiles = gr.tile(seqlengths(TwoBitFile(twobitURL)),win.size)
-  values(tiles) = NULL
-  tiles = tiles %Q% (seqnames %in% c(paste0("chr",seq(1,22)),"chrX","chrY")) # removes all chromomes except 1:22 and X/Y
-  seqlevels(tiles) = seqlevelsInUse(tiles) # Get rid of empty seqname factor levels
-  x = seq(1,(length(tiles) / twobit.win)) 
-  map.score = function(x) {
-    this.ix = seq(1 + ((x-1) * twobit.win), x * twobit.win)
-    out = data.table(mappability = tiles[this.ix] %O% (rtracklayer::import(bw.path, selection = tiles[this.ix]) %Q% (score==1)), index = this.ix)
-    return(out)
-  }
-  map.out = mclapply(x, map.score, mc.cores = mc.cores)
-  map.out = rbindlist(map.out)
-  if (!is.integer(length(tiles)/twobit.win)){
-    edge.num = seq(twobit.win*max(x)+1,length(tiles))
-    edge.out = data.table(mappability = tiles[edge.num] %O% (rtracklayer::import(bw.path, selection = tiles[edge.num]) %Q% (score==1)), index = edge.num)
-    map.out = rbind(map.out, edge.out)
-  }
-  setkey(map.out,index)
-  tiles$score = map.out$mappability
-  tiles = gr.sub(tiles)
-  tiles = gr.stripstrand(tiles)
-  return(tiles)
-}
-
-
-#' @title GC content calculator
-#' @description Calculates GC content across the genome for a given sized window
-#' @name GC.fun
-#' @param win.size integer Window size, in basepairs, to calculate GC content for (should match window
-#' size of your coverage file
-#' @param twobitURL string URL to twobit genome file. Default is hg19 from UCSC
-#' @param twobit.win integer How many windows of the twobit file to load into memory on each core
-#' @param mc.cores integer How many cores to use
-#' @author Marcin Imielinski
-#' @export
-
-GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win = 1e3, mc.cores = 15) {
-    tiles = gr.tile(seqlengths(TwoBitFile(twobitURL)),win.size)
-  values(tiles) = NULL
-  tiles = tiles %Q% (seqnames %in% c(paste0("chr",seq(1,22)),"chrX","chrY")) # removes all chromomes except 1:22 and X/Y
-  x = seq(1,(length(tiles) / twobit.win))
-  gc.con = function(x) {
-    this.ix = seq(1 + ((x-1) * twobit.win), x * twobit.win)
-    # print(this.ix[1])
-    tmp = alphabetFrequency(ffTrack::get_seq(twobitURL, tiles[this.ix]))
-    out = data.table(gc = rowSums(tmp[, c('C', 'G')])/rowSums(tmp), index = this.ix)
-    return(out)
-  }
-  gc.out = mclapply(x, gc.con, mc.cores = mc.cores)
-    gc.out = rbindlist(gc.out)
-  if (!is.integer(length(tiles)/twobit.win)){
-    edge.num = seq(twobit.win*max(x)+1,length(tiles))
-    tmp.edge = alphabetFrequency(ffTrack::get_seq(twobitURL, tiles[edge.num]))
-    edge.out = data.table(gc = rowSums(tmp.edge[, c('C', 'G')])/rowSums(tmp.edge), index = edge.num)
-    gc.out = rbind(gc.out, edge.out)
-  }
-  setkey(gc.out,index)
-  tiles$score = gc.out$gc
-  tiles = gr.sub(tiles)
-  tiles = gr.stripstrand(tiles)
-  return(tiles)
-}
-
-
-#' @name PrepareCov
-#' @title PrepareCov
-#' @description Load BAM or coverage file and prepare for use in correctcov_stub
-#' @author Marcin Imielinski
-#' @param bam path to .bam file
-#' @param cov Path to existing coverage rds or bedgraph 
-#' @param midpoint If TRUE only count midpoint if FALSE then count bin footprint of every fragment interval
-#' @param window window / bin size
-#' @param minmapq Minimal map quality
-#' @param paired wether or not paired
-#' @param outdir Directory to dump output into
-#' @export
-
-PrepareCov = function(bam, cov = NULL, midpoint = FALSE, window = 200, minmapq = 1, paired = TRUE, outdir = NULL) {
-  if (is.null(bam)) {
-    bam = ''
-  }
-  midpoint = grepl("(T)|(TRUE)", midpoint, ignore.case = T)
-  if (file.exists(bam)) { # & is.null(cov))
-    if (!midpoint) {
-      cat("Running without midpoint!!!\n")
-    }
-    print('Doing it!')
-    if (is.null(paired)) {
-      paired = TRUE
-    }
-    if (paired) {
-      cov = bam.cov.tile(bam, window = 200, chunksize = 1e6, midpoint = FALSE, min.mapq = 1)  ## counts midpoints of fragments
-    }
-    else {
-      sl = seqlengths(BamFile(bam))
-      tiles = gr.tile(sl, window)
-      cov = bam.cov.gr(bam, intervals = tiles, isPaired = NA, isProperPair = NA, hasUnmappedMate = NA, chunksize = 1e7)  ## counts midpoints of fragments    # Can we increase chunksize?
-      cov$count = cov$records/width(cov)
-    }
-  }
-  else if (!is.null(cov)) {
-    cov = readRDS(cov)
-  }
-  else {
-    stop("Can't locate either bam or coverage input file")
-  }
-  gc()
-  cat('Finished acquiring coverage\n')
-  return(cov)
-  cat('done\n')
-}
-
-
-
-#' @title Correct coverage
-#' @description Prepares GC, mappability, and coverage files for multicoco
-#' @name correctcov_stub
-#' @param cov.wig wig file of coverage tiles of width W or pointer to rds file
-#' of sorted GRanges object or GRanges object
-#' @param mappability double threshold for mappability score
-#' @param samplesize integer size of sub-sample
-#' @param verbose boolean Wether to print log to console
-#' @param gc.rds.dir string for tiles of width W, will look here for a file named gc{W}.rds in this directory
-#' @param map.rds.dir string for tiles of width W will look here for a file named map{W}.rds in this directory
-#' @author Marcin Imielinski
-#' @export
-
-correctcov_stub = function(cov.wig, mappability = 0.9, samplesize = 5e4, verbose = T, gc.rds.dir, map.rds.dir) {
-  if (is.character(cov.wig)) {
-    if (grepl('(\\.bedgraph$)|(\\.wig$)|(\\.bw$)', cov.wig)) {
-      cov = import.ucsc(cov.wig)
-    }
-    else if (grepl('(\\.rds)', cov.wig)) {
-      cov = gr.stripstrand(readRDS(cov.wig))
-      names(values(cov))[1] = 'score' ## will take the first value column as the (uncorrected) read count
-    }
-    else {
-      stop("Unsupported coverage format (should be UCSC bedgraph, wig, bw, or R Bioconductor GRanges .rds file")
-    }
-  }
-  else { ## assume it is a sorted GRanges
-    cov = gr.stripstrand(cov.wig)
-  }
-  # cov = cov %Q% (seqnames == 21) #' twalradt Monday, Apr 23, 2018 10:33:19 AM Done for unit testing
-  n = length(cov)
-  wid = as.numeric(names(sort(-table(width(cov))))[1])
-  gc.rds = paste(gc.rds.dir,'/gc', wid, '.rds', sep = '')
-  map.rds = paste(map.rds.dir,'/map', wid, '.rds', sep = '')
-  cat('Loaded GC and mappability\n')
-  if (!file.exists(gc.rds) | !file.exists(map.rds)) {
-    stop(sprintf('GC rds file %s not found, either directory is wrong or file needs to be generated for this particular window width', gc.wig))
-    stop(sprintf('mappability rds file %s not found, either directory is wrong or file needs to be generated for this particular window width', map.wig))
-  }
-  else { ## if we have rds files then let's use these to avoid using rtracklayer
-    gc = readRDS(gc.rds)
-    map = readRDS(map.rds)
-  }
-  if (is.null(cov$score)) { ## if $score field is empty then just assume that the first column of coverage is the "score" i.e. read count
-    names(values(cov))[1] = 'score'
-  }
-  map = gr.sub(map)
-  gc = gr.sub(gc)
-  gc.str = gr.string(gc)
-  map.str = gr.string(map)
-  cov.str = gr.string(cov)
-  all.str = intersect(intersect(map.str, cov.str), gc.str) ## in case we have mismatches in the ordering / genome definition       
-  cat(sprintf('length cov is %s, length gc is %s, length map is %s\n',
-              length(cov),
-              length(gc),
-              length(gc)))
-  map = map[match(all.str, map.str)]
-  cov = cov[match(all.str, cov.str)]
-  gc = gc[match(all.str, gc.str)]        
-  if (length(cov) != length(gc) | length(gc) != length(map)) {
-    stop('Mismatch / problem in cov, gc, or map definition.  Check if they come from the same width tiling')
-  }  
-  cov$reads = cov$score
-  cov$gc = gc$score
-  cov$gc[cov$gc<0] = NA
-  cov$map = map$score
-  cov$score = NULL
-  rm(gc)
-  rm(map)
-  gc()  
-  cat('Synced coverage, GC, and mappability\n')
-  cov = sort(gr.fix(cov))        
-  cat('Modified gc / mappability correction\n')
-  return(cov)
-}
-
-
 #' @title Multi-scale coverage correction
 #' @description Given gc and mappability coverage correction at k "nested" scales finds the coverage
 #' assignment at the finest scale that yields the best correction at every scale
@@ -229,13 +25,13 @@ correctcov_stub = function(cov.wig, mappability = 0.9, samplesize = 5e4, verbose
 #' @param ... additional args to FUN
 #' @param mc.cores integer Number of cores to use
 #' @author Marcin Imielinski
-#' @usage multicoco(cov, numlevs = 1, fields = c("gc", "map"), iterative = TRUE,
+#' @usage multicoco(cov, numlevs = 1, base = max(10, 1e5/max(width(cov))), fields = c("gc", "map"), iterative = TRUE,
 #' presegment = TRUE, min.segwidth = 5e6, mono = FALSE, verbose = TRUE,
 #' FUN = NULL, mc.cores = 1)
 #' @export
 
-multicoco = function(cov, numlevs = 1, base = max(10,1e5/max(width(cov))), fields = c("gc", "map"), iterative = TRUE,
-                     presegment = TRUE, min.segwidth = 5e6, mono = FALSE, verbose = TRUE, FUN = NULL, ..., mc.cores = 1) {
+multicoco = function(cov, numlevs = 1, base = max(10, 1e5 / max(width(cov))), fields = c("gc", "map"), iterative = TRUE, presegment = TRUE, min.segwidth = 5e6, mono = TRUE, verbose = TRUE,
+                     FUN = NULL, ..., mc.cores = 1, exome = FALSE) {
   if (verbose) {
     cat('Converting to data.table\n')
   }
@@ -257,7 +53,12 @@ multicoco = function(cov, numlevs = 1, base = max(10,1e5/max(width(cov))), field
     if (verbose) {
       cat('Defining', base^k, 'fold collapsed ranges\n')
     }
-    cov.dt[, eval(paste("lev", k, sep = '')) := as.character(sl[seqnames] + as.numeric(Rle(as.character(1:length(start)), rep(base^k, length(start)))[1:length(start)])/length(start)), by = seqnames]
+        
+    ## cov.dt[, eval(paste("lev", k, sep = '')) := as.character(sl[seqnames] + as.numeric(Rle(as.character(1:length(start)), rep(base^k, length(start)))[1:length(start)])/length(start)), by = seqnames]
+
+    ##  -.01 just to make Trent Happy ie produce identical result to above
+    cov.dt[, eval(paste("lev", k, sep = '')) :=  as.character(sl[seqnames] + ceiling((1:.N-0.01)/base^k)), by = seqnames]
+
     parentmap[[k]] = data.table(parent = cov.dt[, get(paste("lev", k, sep = ''))], child = cov.dt[, get(paste("lev", k-1, sep = ''))], key = 'child')[!duplicated(child), ]
   }
   if (presegment) { ## perform rough segmentation at highest level
@@ -268,7 +69,16 @@ multicoco = function(cov, numlevs = 1, base = max(10,1e5/max(width(cov))), field
     }
     require(DNAcopy)
     set.seed(42) #' twalradt Friday, Apr 20, 2018 01:07:28 PM
-    tmp.cov = seg2gr(cov.dt[,list(chr = seqnames[1], start = min(start), end = max(end), strand = strand[1], reads = mean(reads, na.rm = T)), by = get(paste("lev", numlevs, sep = ''))][end>start, ], seqlengths = sl)
+    if (exome == TRUE) {
+      tiles = gr.tile(sl, width = 1e5)
+      tiles = tiles %Q% (seqnames %in% c(seq(1,22),"X","Y"))
+      seqlevels(tiles) = seqlevelsInUse(tiles) # Get rid of empty seqname factor levels
+      tmp.cov = tiles %$% cov
+      tmp.cov = tmp.cov %Q% (!is.na(reads))
+      # tmp.cov = gr.val(tiles, cov, val = c('reads', 'gc', 'map'), na.rm = TRUE)
+    } else {
+      tmp.cov = seg2gr(cov.dt[,list(chr = seqnames[1], start = min(start), end = max(end), strand = strand[1], reads = mean(reads, na.rm = T)), by = get(paste("lev", numlevs, sep = ''))][end>start, ], seqlengths = sl)
+    }
     ix = which(!is.na(values(tmp.cov)[, 'reads']))
     tmp = data.frame()
     tryCatch({
@@ -284,7 +94,7 @@ multicoco = function(cov, numlevs = 1, base = max(10,1e5/max(width(cov))), field
         seg = seg2gr(seg.dt[, list(seqnames = seqnames,
                                    start = ifelse(c(FALSE, seqnames[-length(seqnames)]==seqnames[-1]), c(1, start[-1]), 1),
                                    end = ifelse(c(seqnames[-length(seqnames)]==seqnames[-1], FALSE), c(start[-1]-1, Inf), seqlengths(seg)[as.character(seqnames)]))], seqlengths = sl)
-        Seg = gr.val(seg, tmp.cov, 'reads') ## populate with mean coverage
+        seg = gr.val(seg, tmp.cov, 'reads') ## populate with mean coverage
         seg$reads = seg$reads/sum(as.numeric(seg$reads*width(seg))/sum(as.numeric(width(seg)))) ## normalize segs by weigthed mean (so these become a correction factor)
       }
       else {
@@ -458,12 +268,19 @@ multicoco = function(cov, numlevs = 1, base = max(10,1e5/max(width(cov))), field
 #' @param outdir string Directory to dump output into
 #' @param gc.rds.dir string for tiles of width W, will look here for a file named gc{W}.rds in this directory
 #' @param map.rds.dir string for tiles of width W will look here for a file named map{W}.rds in this directory
+#' @param exome boolean If TRUE, perform correction using exons as bins instead of fixed size
 #' @export
 
-fragCounter = function(bam, cov = NULL, midpoint = FALSE,window = 200, gc.rds.dir, map.rds.dir, minmapq = 1, paired = TRUE, outdir = NULL) {
-  cov = PrepareCov(bam, cov = NULL, midpoint = FALSE, window = 200, minmapq = 1, paired = TRUE, outdir)
-  cov = correctcov_stub(cov, gc.rds.dir = gc.rds.dir, map.rds.dir = map.rds.dir)
-  cov$reads.corrected = multicoco(cov, numlevs = 1, base = max(10, 1e5/window), mc.cores = 1, fields = c('gc', 'map'), iterative = T, mono = T)$reads.corrected
+fragCounter = function(bam, cov = NULL, midpoint = FALSE,window = 200, gc.rds.dir, map.rds.dir, minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE) {
+  if (exome == TRUE) {
+    cov = PrepareCov(bam, cov = NULL, midpoint = FALSE, window = 200, minmapq = 1, paired = TRUE, outdir, exome = TRUE)
+    cov = correctcov_stub(cov, gc.rds.dir = gc.rds.dir, map.rds.dir = map.rds.dir, exome = TRUE)
+    cov$reads.corrected = coco(cov, mc.cores = 1, fields = c('gc', 'map'), iterative = T, exome = TRUE)$reads.corrected
+  } else {
+    cov = PrepareCov(bam, cov = NULL, midpoint = FALSE, window = 200, minmapq = 1, paired = TRUE, outdir)
+    cov = correctcov_stub(cov, gc.rds.dir = gc.rds.dir, map.rds.dir = map.rds.dir)
+    cov$reads.corrected = multicoco(cov, numlevs = 1, base = max(10, 1e5/window), mc.cores = 1, fields = c('gc', 'map'), iterative = T, mono = T)$reads.corrected
+  }
   if (!is.null(outdir)) {
     out.rds = paste(outdir, '/cov.rds', sep = '')
     out.corr = paste(gsub('.rds$', '', out.rds), '.corrected.bw', sep = '')
@@ -481,4 +298,513 @@ fragCounter = function(bam, cov = NULL, midpoint = FALSE,window = 200, gc.rds.di
 }
 
 
+#' @name bam.cov.exome
+#' @title Get coverage as GRanges from BAM using exons as tiles
+#'
+#' Quick way to get tiled coverage via piping to samtools (e.g. ~10 CPU-hours for 100bp tiles, 5e8 read pairs)
+#'
+#' Gets coverage for exons, pulling "chunksize" records at a time and incrementing bin
+#'
+#' @param bam.file string Input BAM file
+#' @param chunksize integer Size of window (default = 1e5)
+#' @param min.mapq integer Minimim map quality reads to consider for counts (default = 30)
+#' @param verbose boolean Flag to increase vebosity (default = TRUE)
+#' @param max.tlen integer Maximum paired-read insert size to consider (default = 1e4)
+#' @param st.flag string Samtools flag to filter reads on (default = '-f 0x02 -F 0x10')
+#' @param fragments boolean flag (default = FALSE) detremining whether to compute fragment (i.e. proper pair footprint aka insert) density or read density
+#' @param do.gc boolean Flag to execute garbage collection via 'gc()' (default = FALSE)
+#' @return GRanges of exon tiles across seqlengths of bam.file with meta data field $counts specifying fragment counts centered (default = TRUE)
+#' in the given bin.
+#' @author Trent Walradt
+#' @export
 
+bam.cov.exome = function(bam.file, chunksize = 1e5, min.mapq = 30, verbose = TRUE, max.tlen = 1e4, st.flag = "-f 0x02 -F 0x10", fragments = TRUE, do.gc = FALSE, bai = NULL)
+{
+    ## check that the BAM is valid
+    check_valid_bam = readChar(gzfile(bam.file, 'r'), 4)
+    if (!identical(check_valid_bam, 'BAM\1')){
+        stop("Cannot open BAM. A valid BAM for 'bam_file' must be provided.")
+    }
+
+  cmd = 'samtools view %s %s -q %s | cut -f "3,4,9"' ## cmd line to grab the rname, pos, and tlen columns
+
+  ## ## Done for testing
+  ## sl = seqlengths(BamFile(bam.file))
+  ## window = 200
+  ## sl.dt = data.table(chr = names(sl), len = sl)
+  ## counts = sl.dt[, list(start = seq(1, len, window)), by = chr]
+  ## counts = counts[, bin := 1:length(start), by = chr]
+  ## counts[, end := pmin(start + window-1, sl[chr])]
+  ## exome = dt2gr(counts)
+  exome = reduce(read_gencode('exon'))
+  numwin = length(exome)
+  cat('Calling', sprintf(cmd, st.flag, bam.file, min.mapq), '\n')
+  p = pipe(sprintf(cmd, st.flag, bam.file, min.mapq), open = 'r')
+
+  i = 0
+  counts = gr2dt(exome)
+  counts[, ':=' (strand = NULL, width = NULL)]
+  setnames(counts, "seqnames", "chr")
+  counts = counts[, bin := 1:length(start)] #, by = chr]
+  counts[, count := 0]
+  counts[, rowid := 1:length(count)]
+  setkeyv(counts, c("chr", "bin")) ## now we can quickly populate the right entries
+  totreads = 0
+
+  st = Sys.time()
+  if (verbose){
+    cat('Starting fragment count on', bam.file, 'and min mapQ', min.mapq, 'and   insert size limit', max.tlen, '\n')
+  }
+
+  while (length(chunk <- readLines(p, n = chunksize)) > 0)
+  {
+    i = i+1
+    chunk = fread(paste(chunk, collapse = "\n"), header = F)[abs(V3) <= max.tlen, ]
+    chunk[, V2 := ifelse(V3 < 0, V2 + V3, V2)] # Convert negative reads to positive
+    chunk[, V3 := abs(V3)]
+    chunk.gr = GRanges(seqname = chunk$V1, ranges = IRanges(start = chunk$V2, width = chunk$V3))
+    chunk.match = gr.match(chunk.gr, exome)
+    chunk[, bin := chunk.match]
+    tabs = chunk[, list(newcount = length(V1)), by = list(chr = as.character(V1), bin)] ## tabulate reads to bins data.table style
+    counts[tabs, count := count + newcount] ## populate latest bins in master data.table
+    ## should be no memory issues here since we preallocate the data table .. but they still appear
+    if (do.gc){
+        print('GC!!')
+        print(gc())
+    }
+    ## report timing
+    if (verbose){
+      cat('bam.cov.tile.st ', bam.file, 'chunk', i, 'num fragments processed', i*chunksize, '\n')
+      timeelapsed = as.numeric(difftime(Sys.time(), st, units = 'hours'))
+      meancov = i * chunksize / counts[tabs[nrow(tabs),], ]$rowid  ## estimate comes from total reads and "latest" bin filled
+      totreads = meancov * numwin
+      tottime = totreads*timeelapsed/(i*chunksize)
+      rate = i*chunksize / timeelapsed / 3600
+      cat('mean cov:', round(meancov,1), 'per bin, estimated tot fragments:', round(totreads/1e6,2), 'million fragments, processing', rate,
+          'fragments/second\ntime elapsed:', round(timeelapsed,2), 'hours, estimated time remaining:', round(tottime - timeelapsed,2), 'hours', ', estimated total time', round(tottime,2), 'hours\n')
+    }
+  }
+  x = data.table(chr = c(1:22, "X", "Y", "M"), order = 1:25)
+  counts[, order := x$order[match(chr, x$chr)]]
+  counts = counts[order(order)][, order := NULL]
+
+  exome$counts = counts$count
+    if (verbose){
+      cat("Finished computing coverage, and making GRanges\n")
+    }
+  close(p)
+  return(exome)
+}
+
+
+#' @title Mappability calculator
+#' @description Calculates mappability as fraction of bases in a tile with mappability of 1
+#' @name MAP.fun
+#' @param win.size integer Window size, in basepairs, to calculate mappability for (should match window
+#' size of your coverage file
+#' @param twobitURL string URL to twobit genome file. Default is hg19 from UCSC
+#' @param bw.path string Path to .bigWig mappability file
+#' @param twobit.win integer How many windows of the twobit file to load into memory on each core
+#' @param mc.cores integer How many cores to use
+#' @param exome boolean If TRUE, calculate mappability for exons instead of window
+#' @author Trent Walradt
+#' @export
+
+MAP.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', bw.path = '~/DB/UCSC/wgEncodeCrgMapabilityAlign100mer.bigWig', twobit.win = 1e3, mc.cores = 10, exome = FALSE) {
+  if (exome == TRUE){
+    tiles = reduce(read_gencode('exon'))
+    seqlevelsStyle(tiles) <- "UCSC"
+  } else {
+    tiles = gr.tile(seqlengths(TwoBitFile(twobitURL)),win.size)
+  }
+  values(tiles) = NULL
+  tiles = tiles %Q% (seqnames %in% c(paste0("chr",seq(1,22)),"chrX","chrY")) # removes all chromomes except 1:22 and X/Y
+  seqlevels(tiles) = seqlevelsInUse(tiles) # Get rid of empty seqname factor levels
+  x = seq(1,(length(tiles) / twobit.win)) 
+  map.score = function(x) {
+    this.ix = seq(1 + ((x-1) * twobit.win), x * twobit.win)
+    out = data.table(mappability = tiles[this.ix] %O% (rtracklayer::import(bw.path, selection = tiles[this.ix]) %Q% (score==1)), index = this.ix)
+    return(out)
+  }
+  map.out = mclapply(x, map.score, mc.cores = mc.cores)
+  map.out = rbindlist(map.out)
+  if (!is.integer(length(tiles)/twobit.win)){
+    edge.num = seq(twobit.win*max(x)+1,length(tiles))
+    edge.out = data.table(mappability = tiles[edge.num] %O% (rtracklayer::import(bw.path, selection = tiles[edge.num]) %Q% (score==1)), index = edge.num)
+    map.out = rbind(map.out, edge.out)
+  }
+  setkey(map.out,index)
+  tiles$score = map.out$mappability
+  tiles = gr.sub(tiles)
+  tiles = gr.stripstrand(tiles)
+  return(tiles)
+}
+
+
+
+
+#' @title GC content calculator
+#' @description Calculates GC content across the genome for a given sized window
+#' @name GC.fun
+#' @param win.size integer Window size, in basepairs, to calculate GC content for (should match window
+#' size of your coverage file
+#' @param twobitURL string URL to twobit genome file. Default is hg19 from UCSC
+#' @param twobit.win integer How many windows of the twobit file to load into memory on each core
+#' @param mc.cores integer How many cores to use
+#' @param exome boolean If TRUE, calculate mappability for exons instead of window
+#' @author Trent Walradt
+#' @export
+
+GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win = 1e3, mc.cores = 15, exome = FALSE) {
+  if (exome == TRUE){
+    tiles = reduce(read_gencode('exon'))
+    seqlevelsStyle(tiles) <- "UCSC"
+  } else {
+    tiles = gr.tile(seqlengths(TwoBitFile(twobitURL)),win.size)
+  }
+
+  values(tiles) = NULL
+  tiles = tiles %Q% (seqnames %in% c(paste0("chr",seq(1,22)),"chrX","chrY")) # removes all chromomes except 1:22 and X/Y
+  x = seq(1,(length(tiles) / twobit.win))
+  gc.con = function(x) {
+    this.ix = seq(1 + ((x-1) * twobit.win), x * twobit.win)
+    # print(this.ix[1])
+    tmp = alphabetFrequency(ffTrack::get_seq(twobitURL, tiles[this.ix]))
+    out = data.table(gc = rowSums(tmp[, c('C', 'G')])/rowSums(tmp), index = this.ix)
+    return(out)
+  }
+  gc.out = mclapply(x, gc.con, mc.cores = mc.cores)
+    gc.out = rbindlist(gc.out)
+  if (!is.integer(length(tiles)/twobit.win)){
+    edge.num = seq(twobit.win*max(x)+1,length(tiles))
+    tmp.edge = alphabetFrequency(ffTrack::get_seq(twobitURL, tiles[edge.num]))
+    edge.out = data.table(gc = rowSums(tmp.edge[, c('C', 'G')])/rowSums(tmp.edge), index = edge.num)
+    gc.out = rbind(gc.out, edge.out)
+  }
+  setkey(gc.out,index)
+  tiles$score = gc.out$gc
+  tiles = gr.sub(tiles)
+  tiles = gr.stripstrand(tiles)
+  return(tiles)
+}
+
+
+#' @name PrepareCov
+#' @title PrepareCov
+#' @description Load BAM or coverage file and prepare for use in correctcov_stub
+#' @author Marcin Imielinski
+#' @param bam path to .bam file
+#' @param cov Path to existing coverage rds or bedgraph 
+#' @param midpoint If TRUE only count midpoint if FALSE then count bin footprint of every fragment interval
+#' @param window window / bin size
+#' @param minmapq Minimal map quality
+#' @param paired wether or not paired
+#' @param outdir Directory to dump output into
+#' @param exome boolean If TRUE, use bam.cov.exome to calculate coverage
+#' @author Trent Walradt
+#' @export
+
+PrepareCov = function(bam, cov = NULL, midpoint = FALSE, window = 200, minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE) {
+
+  if (exome == TRUE){
+    cov = bam.cov.exome(bam, chunksize = 1e6, min.mapq = 1)
+  } else {
+    if (is.null(bam)) {
+      bam = ''
+    }
+    midpoint = grepl("(T)|(TRUE)", midpoint, ignore.case = T)
+    if (file.exists(bam)) { # & is.null(cov))
+      if (!midpoint) {
+        cat("Running without midpoint!!!\n")
+      }
+      print('Doing it!')
+      if (is.null(paired)) {
+        paired = TRUE
+      }
+      if (paired) {
+        cov = bam.cov.tile(bam, window = window, chunksize = 1e6, midpoint = FALSE, min.mapq = 1)  ## counts midpoints of fragments
+      }
+      else {
+        sl = seqlengths(BamFile(bam))
+        tiles = gr.tile(sl, window)
+        cov = bam.cov.gr(bam, intervals = tiles, isPaired = NA, isProperPair = NA, hasUnmappedMate = NA, chunksize = 1e7)  ## counts midpoints of fragments    # Can we increase chunksize?
+        cov$count = cov$records/width(cov)
+      }
+    }
+    else if (!is.null(cov)) {
+      cov = readRDS(cov)
+    }
+    else {
+      stop("Can't locate either bam or coverage input file")
+    }
+  }
+  gc()
+  cat('Finished acquiring coverage\n')
+  return(cov)
+  cat('done\n')
+}
+
+
+#' @title Correct coverage stub
+#' @description Prepares GC, mappability, and coverage files for multicoco
+#' @name correctcov_stub
+#' @param cov.wig wig file of coverage tiles of width W or pointer to rds file
+#' of sorted GRanges object or GRanges object
+#' @param mappability double threshold for mappability score
+#' @param samplesize integer size of sub-sample
+#' @param verbose boolean Wether to print log to console
+#' @param gc.rds.dir string for tiles of width W, will look here for a file named gc{W}.rds in this directory
+#' @param map.rds.dir string for tiles of width W will look here for a file named map{W}.rds in this directory
+#' @param exome boolean If TRUE, look in gc/map.rds.dir for files called 'gcexome.rds' and 'mapexome.rds'
+#' @author Trent Walradt
+#' @export
+
+correctcov_stub = function(cov.wig, mappability = 0.9, samplesize = 5e4, verbose = T, gc.rds.dir, map.rds.dir, exome = TRUE) {
+  if (is.character(cov.wig)) {
+    if (grepl('(\\.bedgraph$)|(\\.wig$)|(\\.bw$)', cov.wig)) {
+      cov = import.ucsc(cov.wig)
+    }
+    else if (grepl('(\\.rds)', cov.wig)) {
+      cov = gr.stripstrand(readRDS(cov.wig))
+      names(values(cov))[1] = 'score' ## will take the first value column as the (uncorrected) read count
+    }
+    else {
+      stop("Unsupported coverage format (should be UCSC bedgraph, wig, bw, or R Bioconductor GRanges .rds file")
+    }
+  }
+  else { ## assume it is a sorted GRanges
+    cov = gr.stripstrand(cov.wig)
+  }
+  # cov = cov %Q% (seqnames == 21) #' twalradt Monday, Apr 23, 2018 10:33:19 AM Done for unit testing
+  n = length(cov)
+  wid = as.numeric(names(sort(-table(width(cov))))[1])
+
+  if (exome == TRUE) {
+    gc.rds = paste(gc.rds.dir,'/gcexome.rds', sep = '')
+    map.rds = paste(map.rds.dir,'/mapexome.rds', sep = '')
+  } else {
+    gc.rds = paste(gc.rds.dir,'/gc', wid, '.rds', sep = '')
+    map.rds = paste(map.rds.dir,'/map', wid, '.rds', sep = '')
+  }
+  cat('Loaded GC and mappability\n')
+  if (!file.exists(gc.rds) | !file.exists(map.rds)) {
+    stop(sprintf('GC rds file %s not found, either directory is wrong or file needs to be generated for this particular window width', gc.wig))
+    stop(sprintf('mappability rds file %s not found, either directory is wrong or file needs to be generated for this particular window width', map.wig))
+  }
+  else { ## if we have rds files then let's use these to avoid using rtracklayer
+    gc = readRDS(gc.rds)
+    map = readRDS(map.rds)
+  }
+  if (is.null(cov$score)) { ## if $score field is empty then just assume that the first column of coverage is the "score" i.e. read count
+    names(values(cov))[1] = 'score'
+  }
+  map = gr.sub(map)
+  gc = gr.sub(gc)
+  gc.str = gr.string(gc)
+  map.str = gr.string(map)
+  cov.str = gr.string(cov)
+  all.str = intersect(intersect(map.str, cov.str), gc.str) ## in case we have mismatches in the ordering / genome definition       
+  cat(sprintf('length cov is %s, length gc is %s, length map is %s\n',
+              length(cov),
+              length(gc),
+              length(gc)))
+  map = map[match(all.str, map.str)]
+  cov = cov[match(all.str, cov.str)]
+  gc = gc[match(all.str, gc.str)]        
+  if (length(cov) != length(gc) | length(gc) != length(map)) {
+    stop('Mismatch / problem in cov, gc, or map definition.  Check if they come from the same width tiling')
+  }  
+  cov$reads = cov$score
+  cov$gc = gc$score
+  cov$gc[cov$gc<0] = NA
+  cov$map = map$score
+  cov$score = NULL
+  rm(gc)
+  rm(map)
+  gc()  
+  cat('Synced coverage, GC, and mappability\n')
+  cov = sort(gr.fix(cov))        
+  cat('Modified gc / mappability correction\n')
+  return(cov)
+}
+
+
+
+#' @title Coverage correction
+#' @description Given gc and mappability coverage correction, yields corrected
+#' read counts
+#' @name coco
+#' @param cov GRanges constant with GRanges of coverage samples with (by default) fields $reads, $map, $gc
+#' @param base integer Scale multiplier
+#' @param fields character vector fields of gc to use as covariates
+#' @param iterative boolean whether to iterate
+#' @param presegment boolean whether to presegment
+#' @param min.segwidth integer when presegmenting, minimum segment width
+#' @param verbose boolean Wether to print log to console
+#' @param FUN function with which to correct coverage (by default loess
+#' correction modified from HMMcopy that takes in granges with fields
+#' $reads and other fields specified in "fields"
+#' @param ... additional args to FUN
+#' @param mc.cores integer Number of cores to use
+#' @param exome boolean If TRUE, collapse by 1e5 for presegmentation
+#' @author Trent Walradt
+#' @usage coco(cov, base = max(10, 1e5/max(width(cov))), fields = c("gc", "map"), iterative = TRUE,
+#' presegment = TRUE, min.segwidth = 5e6, verbose = TRUE,
+#' FUN = NULL, mc.cores = 1, exome = TRUE)
+#' @export
+
+coco = function(cov, base = max(10, 1e5 / max(width(cov))), fields = c("gc", "map"),
+                     iterative = TRUE, presegment = TRUE, min.segwidth = 5e6, verbose = TRUE, FUN = NULL, ..., mc.cores = 1, exome = TRUE) {
+  if (verbose) {
+    cat('Converting to data.table\n')
+  }
+  WID = max(width(cov))
+  library(data.table)
+  cov.dt = gr2dt(cov)        
+  sl = structure(as.numeric(1:length(seqlevels(cov))), names = seqlevels(cov))       
+  if (verbose) {
+    cat('Grouping intervals\n')
+  }
+  ##  -.01 just to make Trent Happy ie produce identical result to above
+  cov.dt[, lev1 :=  as.character(sl[seqnames] + ceiling((1:.N-0.01)/base)), by = seqnames]
+
+  if (presegment) { ## perform rough segmentation at highest level
+    seg = NULL
+    sl = seqlengths(cov)
+    if (verbose) {
+      cat('Presegmenting at ', as.integer(WID*base), ' bp scale \n')
+    }
+    require(DNAcopy)
+    set.seed(42) #' twalradt Friday, Apr 20, 2018 01:07:28 PM
+    if (exome == TRUE) {
+      tiles = gr.tile(sl, width = 1e5)
+      tiles = tiles %Q% (seqnames %in% c(seq(1,22),"X","Y"))
+      seqlevels(tiles) = seqlevelsInUse(tiles) # Get rid of empty seqname factor levels
+      tmp.cov = tiles %$% cov
+      tmp.cov = tmp.cov %Q% (!is.na(reads))
+      # tmp.cov = gr.val(tiles, cov, val = c('reads', 'gc', 'map'), na.rm = TRUE)
+    } else {
+      tmp.cov = seg2gr(cov.dt[,list(chr = seqnames[1], start = min(start), end = max(end), strand = strand[1], reads = mean(reads, na.rm = T)), by = get(paste("lev", numlevs, sep = ''))][end>start, ], seqlengths = sl)
+    }
+    ix = which(!is.na(values(tmp.cov)[, 'reads']))
+    tmp = data.frame()
+    tryCatch({
+      cna = CNA(log(values(tmp.cov)[, 'reads'])[ix], as.character(seqnames(tmp.cov))[ix], start(tmp.cov)[ix], data.type = 'logratio')
+      tmp = print(segment(smooth.CNA(cna), alpha = 1e-5, verbose = T))
+      tmp = tmp[!is.na(tmp$loc.start) & !is.na(tmp$chrom) & !is.na(tmp$loc.end), , drop = F]
+    }, error = function(e) warning('DNACopy error moving on without segmenting'))
+    if (nrow(tmp)>0) {
+      seg = sort(seg2gr(tmp, seqlengths = sl))
+      seg = seg[width(seg)>min.segwidth] ## remove small segments
+      seg.dt = gr2dt(seg)
+      if (nrow(seg.dt)>0) {
+        seg = seg2gr(seg.dt[, list(seqnames = seqnames,
+                                   start = ifelse(c(FALSE, seqnames[-length(seqnames)]==seqnames[-1]), c(1, start[-1]), 1),
+                                   end = ifelse(c(seqnames[-length(seqnames)]==seqnames[-1], FALSE), c(start[-1]-1, Inf), seqlengths(seg)[as.character(seqnames)]))], seqlengths = sl)
+        seg = gr.val(seg, tmp.cov, 'reads') ## populate with mean coverage
+        seg$reads = seg$reads/sum(as.numeric(seg$reads*width(seg))/sum(as.numeric(width(seg)))) ## normalize segs by weigthed mean (so these become a correction factor)
+      }
+      else {
+        seg = NULL
+      }
+    }
+    else {
+      seg = NULL
+    }
+  }
+  else {
+    seg = NULL
+  }
+
+  ## modified from HMMCopy to
+  ## (1) take arbitrary set of covariates, specified by fields vector
+  ## (2) employ as input an optional preliminary (coarse) segmentation with which to adjust signal immediately prior to loess
+  ## NOTE: (this only impacts the loess fitting, does not impose any segmentation on the data)
+  ##
+  if (is.null(FUN)) {
+    FUN = function(x, fields = fields, samplesize = 5e4, seg = NULL, verbose = T, doutlier = 0.001, routlier = 0.01) {
+      if (!all(fields %in% names(x))) {
+        stop(paste('Missing columns:', paste(fields[!(fields %in% names(x))], collapse = ',')))
+      }
+      x$valid <- TRUE
+      x = as.data.frame(x)
+      for (f in fields) {
+        x$valid[is.na(x[, f])] = FALSE
+        x$valid[which(is.infinite(x[, f]))] = FALSE
+      }
+      if (verbose) {
+        cat('Quantile filtering response and covariates\n')
+      }
+      range <- quantile(x$reads[x$valid], prob = c(routlier, 1 - routlier), na.rm = TRUE)
+      if (verbose) {
+        cat(sprintf("Response min quantile: %s max quantile: %s\n", round(range[1],2), round(range[2],2)))
+      }
+      domains = lapply(fields, function(f) quantile(x[x$valid, f], prob = c(doutlier, 1 - doutlier), na.rm = TRUE))
+      names(domains) = fields
+      x$ideal <- x$valid
+      x$ideal[x$reads<=range[1] | x$reads>range[2]] = FALSE
+      for (f in fields)
+      {
+        x$ideal[x[, f] < domains[[f]][1] | x[, f] > domains[[f]][2]] = FALSE
+      }
+      if (verbose) {
+        cat(sprintf('Nominated %s of %s data points for loess fitting\n', sum(x$ideal), nrow(x)))
+      }
+      set <- which(x$ideal)
+      if (length(set)<=10) {
+        warning("Not enough samples for loess fitting - check to see if missing or truncated data?")
+        return(x$reads)
+      }
+      for (f in fields) {
+        if (verbose) {
+          message(sprintf("Correcting for %s bias...", f))
+        }
+        set.seed(42)
+        select <- sample(set, min(length(set), samplesize))
+        x2 = x[, c('reads', f)]
+        x2$covariate = x2[, f]
+        x2s = x2[select, ]                    
+        if (!is.null(seg)) {  ## here we apply a prelmiinary segmentation to correct for large scale copy variation allow more power to reveal the covariate signal
+          if (verbose) {
+            message('Applying preliminary segmentation prior to loess fitting')
+          }
+          x.grs = gr.val(seg2gr(x[select, ], seqlengths = NULL), seg, 'reads')
+          x2s$reads = x2s$reads/x.grs$reads
+        }
+        fit = tryCatch(loess(reads ~ covariate, data = x2s, span = 0.3), error = function(e) NULL)
+        x$reads = NA
+        if (!is.null(fit)) {
+          if (is.na(fit$s)) {
+            warning("Using all points since initial loess failed")
+            fit = loess(reads ~ covariate, data = x2[select, ], span = 1)
+          }
+        }
+        tryCatch(
+        {
+          if (!is.na(fit$s)) {
+            domain = domains[[f]]
+            yrange <- quantile(x2s$reads, prob = c(routlier, 1 - routlier), na.rm = TRUE)
+            df = data.frame(covariate = seq(domain[1], domain[2], 0.001))
+            x$reads = x2$reads/predict(fit, x2) ## apply correction
+          }
+          else {
+            print("Loess failed, yielding NA loess object, continuing without transforming data")
+          }
+        }, error = function(e) print("Unspecified loess or figure output error"))
+      }
+      return(x$reads)
+    }
+  }
+  cov.dt$reads.corrected = FUN(as.data.frame(cov.dt), fields, seg = seg);
+  gc()        
+  if (verbose) {
+    cat('Converting to GRanges\n')
+  }
+  gc()      
+  out = seg2gr(as.data.frame(cov.dt), seqlengths = seqlengths(cov)) 
+  if (verbose) {
+    cat('Made GRanges\n')
+  }
+  gc()
+  return(out)
+}

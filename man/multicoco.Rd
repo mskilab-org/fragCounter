@@ -4,7 +4,7 @@
 \alias{multicoco}
 \title{Multi-scale coverage correction}
 \usage{
-multicoco(cov, numlevs = 1, fields = c("gc", "map"), iterative = TRUE,
+multicoco(cov, numlevs = 1, base = max(10, 1e5/max(width(cov))), fields = c("gc", "map"), iterative = TRUE,
 presegment = TRUE, min.segwidth = 5e6, mono = FALSE, verbose = TRUE,
 FUN = NULL, mc.cores = 1)
 }
