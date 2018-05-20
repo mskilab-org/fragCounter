@@ -6,7 +6,7 @@
 \usage{
 coco(cov, base = max(10, 1e5/max(width(cov))), fields = c("gc", "map"), iterative = TRUE,
 presegment = TRUE, min.segwidth = 5e6, verbose = TRUE,
-FUN = NULL, mc.cores = 1, exome = TRUE)
+FUN = NULL, mc.cores = 1, exome = TRUE, imageroot = NULL)
 }
 \arguments{
 \item{cov}{GRanges constant with GRanges of coverage samples with (by default) fields $reads, $map, $gc}
@@ -32,6 +32,8 @@ $reads and other fields specified in "fields"}
 \item{mc.cores}{integer Number of cores to use}
 
 \item{exome}{boolean If TRUE, collapse by 1e5 for presegmentation}
+
+\item{imageroot}{String, optional file root to which to dump images of correction}
 }
 \description{
 Given gc and mappability coverage correction, yields corrected

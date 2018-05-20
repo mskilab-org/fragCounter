@@ -275,6 +275,9 @@ multicoco = function(cov, numlevs = 1, base = max(10, 1e5 / max(width(cov))),
 #' @export
 
 fragCounter = function(bam, cov = NULL, midpoint = FALSE,window = 200, gc.rds.dir, map.rds.dir, minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE) {
+
+  imageroot = gsub('.rds$', '', out.rds)
+
   if (exome == TRUE) {
     cov = PrepareCov(bam, cov = NULL, midpoint = FALSE, window = 200, minmapq = 1, paired = TRUE, outdir, exome = TRUE)
     cov = correctcov_stub(cov, gc.rds.dir = gc.rds.dir, map.rds.dir = map.rds.dir, exome = TRUE)
@@ -632,14 +635,15 @@ correctcov_stub = function(cov.wig, mappability = 0.9, samplesize = 5e4, verbose
 #' @param ... additional args to FUN
 #' @param mc.cores integer Number of cores to use
 #' @param exome boolean If TRUE, collapse by 1e5 for presegmentation
+#' @param imageroot String, optional file root to which to dump images of correction
 #' @author Trent Walradt
 #' @usage coco(cov, base = max(10, 1e5/max(width(cov))), fields = c("gc", "map"), iterative = TRUE,
 #' presegment = TRUE, min.segwidth = 5e6, verbose = TRUE,
-#' FUN = NULL, mc.cores = 1, exome = TRUE)
+#' FUN = NULL, mc.cores = 1, exome = TRUE, imageroot = NULL)
 #' @export
 
 coco = function(cov, base = max(10, 1e5 / max(width(cov))), fields = c("gc", "map"),
-                     iterative = TRUE, presegment = TRUE, min.segwidth = 5e6, verbose = TRUE, FUN = NULL, ..., mc.cores = 1, exome = TRUE) {
+                     iterative = TRUE, presegment = TRUE, min.segwidth = 5e6, verbose = TRUE, FUN = NULL, ..., mc.cores = 1, exome = TRUE, imageroot = NULL) {
   if (verbose) {
     cat('Converting to data.table\n')
   }
@@ -768,6 +772,19 @@ coco = function(cov, base = max(10, 1e5 / max(width(cov))), fields = c("gc", "ma
             domain = domains[[f]]
             yrange <- quantile(x2s$reads, prob = c(routlier, 1 - routlier), na.rm = TRUE)
             df = data.frame(covariate = seq(domain[1], domain[2], 0.001))
+
+#' twalradt Sunday, May 20, 2018 04:15:24 PM Included to test exome functionality
+            if (!is.null(imageroot)) {
+              out.png = paste(imageroot, ifelse(grepl("/$", imageroot), '', '.'), f,'_correction.png', sep = '')
+              if (verbose) {
+                cat("Dumping figure to", out.png, "\n")
+              }
+              png(out.png, height = 1000, width = 1000) 
+              plot(x2s$covariate, x2s$reads, col = alpha('black', 0.1), pch = 19, cex = 0.4, xlim = domain, ylim = yrange, ylab = sprintf('signal before %s correction', f), xlab = f);
+              lines(df$covariate, predict(fit, df), col = 'red', lwd = 2)
+              dev.off()
+            } 
+
             x$reads = x2$reads/predict(fit, x2) ## apply correction
           }
           else {
@@ -789,5 +806,23 @@ coco = function(cov, base = max(10, 1e5 / max(width(cov))), fields = c("gc", "ma
     cat('Made GRanges\n')
   }
   gc()
+  return(out)
+}
+
+
+
+
+#' @description
+#' Takes provided colors and gives them the specified alpha (ie transparency) value
+#' @param col RGB color
+#' @param alpha value of alpha
+#' @name alpha
+#' @rdname trackData-class
+
+alpha = function(col, alpha)
+{    
+  col.rgb = col2rgb(col)
+  out = rgb(red = col.rgb['red', ]/255, green = col.rgb['green', ]/255, blue = col.rgb['blue', ]/255, alpha = alpha)
+  names(out) = names(col)
   return(out)
 }
