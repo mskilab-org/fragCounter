@@ -3,6 +3,7 @@
 #' @import data.table
 #' @import rtracklayer
 #' @import bamUtils
+#' @import skidb
 #' @importFrom stats cor loess predict quantile
 
 
@@ -336,7 +337,7 @@ bam.cov.exome = function(bam.file, chunksize = 1e5, min.mapq = 30, verbose = TRU
         stop("Cannot open BAM. A valid BAM for 'bam_file' must be provided.")
     }
   cmd = 'samtools view %s %s -q %s | cut -f "3,4,9"' ## cmd line to grab the rname, pos, and tlen columns
-  exome = reduce(read_gencode('exon'))
+  exome = reduce(skidb::read_gencode('exon'))
   numwin = length(exome)
   cat('Calling', sprintf(cmd, st.flag, bam.file, min.mapq), '\n')
   p = pipe(sprintf(cmd, st.flag, bam.file, min.mapq), open = 'r')
