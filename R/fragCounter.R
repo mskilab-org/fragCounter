@@ -275,13 +275,13 @@ multicoco = function(cov, numlevs = 1, base = max(10, 1e5 / max(width(cov))),
 #' @export
 
 fragCounter = function(bam, cov = NULL, midpoint = FALSE,window = 200, gc.rds.dir, map.rds.dir, minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE) {
-
+  out.rds = paste(outdir, '/cov.rds', sep = '')
   imageroot = gsub('.rds$', '', out.rds)
 
   if (exome == TRUE) {
     cov = PrepareCov(bam, cov = NULL, midpoint = FALSE, window = 200, minmapq = 1, paired = TRUE, outdir, exome = TRUE)
     cov = correctcov_stub(cov, gc.rds.dir = gc.rds.dir, map.rds.dir = map.rds.dir, exome = TRUE)
-    cov$reads.corrected = coco(cov, mc.cores = 1, fields = c('gc', 'map'), iterative = T, exome = TRUE)$reads.corrected
+    cov$reads.corrected = coco(cov, mc.cores = 1, fields = c('gc', 'map'), iterative = T, exome = TRUE, imageroot = imageroot)$reads.corrected
   } else {
     cov = PrepareCov(bam, cov = NULL, midpoint = FALSE, window = 200, minmapq = 1, paired = TRUE, outdir)
     cov = correctcov_stub(cov, gc.rds.dir = gc.rds.dir, map.rds.dir = map.rds.dir)
@@ -295,7 +295,11 @@ fragCounter = function(bam, cov = NULL, midpoint = FALSE,window = 200, gc.rds.di
       cov.corr.out$score = cov$reads.corrected
       cov.corr.out$score[is.na(cov.corr.out$score)] = -1
       cov.corr.out = cov.corr.out[width(cov.corr.out)==window] ## remove any funky widths at end of chromosome
-      export(cov.corr.out[, 'score'], out.corr, 'bigWig', dataFormat = 'fixedStep')
+      if (exome == TRUE) {
+        export(cov.corr.out[, 'score'], out.corr, 'bigWig', dataFormat = 'variableStep')
+      } else {
+        export(cov.corr.out[, 'score'], out.corr, 'bigWig', dataFormat = 'fixedStep')
+      }
     }
     saveRDS(cov, paste(gsub('.rds$', '', out.rds), '.rds', sep = ''))
   }
@@ -730,8 +734,7 @@ coco = function(cov, base = max(10, 1e5 / max(width(cov))), fields = c("gc", "ma
       names(domains) = fields
       x$ideal <- x$valid
       x$ideal[x$reads<=range[1] | x$reads>range[2]] = FALSE
-      for (f in fields)
-      {
+      for (f in fields) {
         x$ideal[x[, f] < domains[[f]][1] | x[, f] > domains[[f]][2]] = FALSE
       }
       if (verbose) {
@@ -764,16 +767,10 @@ coco = function(cov, base = max(10, 1e5 / max(width(cov))), fields = c("gc", "ma
           if (is.na(fit$s)) {
             warning("Using all points since initial loess failed")
             fit = loess(reads ~ covariate, data = x2[select, ], span = 1)
-          }
-        }
-        tryCatch(
-        {
-          if (!is.na(fit$s)) {
             domain = domains[[f]]
             yrange <- quantile(x2s$reads, prob = c(routlier, 1 - routlier), na.rm = TRUE)
             df = data.frame(covariate = seq(domain[1], domain[2], 0.001))
-
-#' twalradt Sunday, May 20, 2018 04:15:24 PM Included to test exome functionality
+            
             if (!is.null(imageroot)) {
               out.png = paste(imageroot, ifelse(grepl("/$", imageroot), '', '.'), f,'_correction.png', sep = '')
               if (verbose) {
@@ -783,7 +780,26 @@ coco = function(cov, base = max(10, 1e5 / max(width(cov))), fields = c("gc", "ma
               plot(x2s$covariate, x2s$reads, col = alpha('black', 0.1), pch = 19, cex = 0.4, xlim = domain, ylim = yrange, ylab = sprintf('signal before %s correction', f), xlab = f);
               lines(df$covariate, predict(fit, df), col = 'red', lwd = 2)
               dev.off()
-            } 
+            }
+          }
+        }
+        tryCatch(
+        {
+          if (!is.na(fit$s)) {
+            domain = domains[[f]]
+            yrange <- quantile(x2s$reads, prob = c(routlier, 1 - routlier), na.rm = TRUE)
+            df = data.frame(covariate = seq(domain[1], domain[2], 0.001))
+
+            if (!is.null(imageroot)) {
+              out.png = paste(imageroot, ifelse(grepl("/$", imageroot), '', '.'), f,'_correction.png', sep = '')
+              if (verbose) {
+                cat("Dumping figure to", out.png, "\n")
+              }
+              png(out.png, height = 1000, width = 1000) 
+              plot(x2s$covariate, x2s$reads, col = alpha('black', 0.1), pch = 19, cex = 0.4, xlim = domain, ylim = yrange, ylab = sprintf('signal before %s correction', f), xlab = f);
+              lines(df$covariate, predict(fit, df), col = 'red', lwd = 2)
+              dev.off()
+            }
 
             x$reads = x2$reads/predict(fit, x2) ## apply correction
           }
@@ -812,12 +828,12 @@ coco = function(cov, base = max(10, 1e5 / max(width(cov))), fields = c("gc", "ma
 
 
 
+#' @title alpha
 #' @description
 #' Takes provided colors and gives them the specified alpha (ie transparency) value
+#' @name alpha
 #' @param col RGB color
 #' @param alpha value of alpha
-#' @name alpha
-#' @rdname trackData-class
 
 alpha = function(col, alpha)
 {    
