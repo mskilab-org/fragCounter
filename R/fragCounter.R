@@ -331,7 +331,7 @@ fragCounter = function(bam, cov = NULL, midpoint = FALSE,window = 200, gc.rds.di
 
 bam.cov.exome = function(bam.file, chunksize = 1e5, min.mapq = 30, verbose = TRUE, max.tlen = 1e4, st.flag = "-f 0x02 -F 0x10", fragments = TRUE, do.gc = FALSE, bai = NULL)
 {
-    ## check that the BAM is valid
+  ## check that the BAM is valid
     check_valid_bam = readChar(gzfile(bam.file, 'r'), 4)
     if (!identical(check_valid_bam, 'BAM\1')){
         stop("Cannot open BAM. A valid BAM for 'bam_file' must be provided.")
@@ -360,6 +360,10 @@ bam.cov.exome = function(bam.file, chunksize = 1e5, min.mapq = 30, verbose = TRU
     chunk = fread(paste(chunk, collapse = "\n"), header = F)[abs(V3) <= max.tlen, ]
     chunk[, V2 := ifelse(V3 < 0, V2 + V3, V2)] # Convert negative reads to positive
     chunk[, V3 := abs(V3)]
+    browser()
+    if (grepl("chr",chunk$V1[1])) {
+      chunk[, V1 := gsub("chr", "", V1)]
+    }
     chunk.gr = GRanges(seqname = chunk$V1, ranges = IRanges(start = chunk$V2, width = chunk$V3))
     chunk.match = gr.match(chunk.gr, exome)
     chunk[, bin := chunk.match]
