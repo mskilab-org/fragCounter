@@ -6,7 +6,8 @@
 \usage{
 multicoco(cov, numlevs = 1, base = max(10, 1e5/max(width(cov))),
 fields = c("gc", "map"), iterative = TRUE, presegment = TRUE,
-min.segwidth = 5e6, mono = TRUE, verbose = TRUE, FUN = NULL, mc.cores = 1)
+min.segwidth = 5e6, mono = TRUE, verbose = TRUE, FUN = NULL, ...,
+mc.cores = 1, exome = FALSE)
 }
 \arguments{
 \item{cov}{GRanges constant with GRanges of coverage samples with (by default) fields $reads, $map, $gc}

@@ -6,7 +6,7 @@
 \usage{
 bam.cov.exome(bam.file, chunksize = 1e+05, min.mapq = 30, verbose = TRUE,
   max.tlen = 10000, st.flag = "-f 0x02 -F 0x10", fragments = TRUE,
-  do.gc = FALSE, bai = NULL)
+  do.gc = FALSE)
 }
 \arguments{
 \item{bam.file}{string Input BAM file}

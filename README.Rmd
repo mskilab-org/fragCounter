@@ -23,10 +23,27 @@ The goal of fragCounter is to correct WGS data for GC and mappability bias. The 
 
 You can install fragCounter from github with:
 
+Install dependent packages
 ```{r gh-installation, eval = FALSE}
-# install.packages("devtools")
+install.packages('DNAcopy')
+```
+
+Install devtools from CRAN (if you don't have it already)
+```{r}
+install.packages('devtools')
+```
+
+Install dependent mskilab R packages
+```{r}
+devtools::install_github('mskilab/gUtils')
+```
+
+Install fragCounter
+```{r}
 devtools::install_github("mskilab/fragCounter")
 ```
+
+
 
 ## Example
 

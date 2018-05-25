@@ -3,8 +3,16 @@
 #' @import data.table
 #' @import rtracklayer
 #' @import bamUtils
-#' @import skidb
 #' @importFrom stats cor loess predict quantile
+#' @importFrom skidb read_gencode
+#' @importFrom GenomeInfoDb seqlevels seqlengths seqlevelsStyle<- seqlevelsInUse
+#' @importFrom Biostrings alphabetFrequency
+#' @importFrom parallel mclapply
+#' @importFrom Rsamtools BamFile
+#' @importFrom grDevices col2rgb rgb png dev.off
+#' @importFrom IRanges IRanges
+#' @importFrom DNAcopy CNA segment smooth.CNA
+#' @importFrom graphics plot lines
 
 
 #' @title Multi-scale coverage correction
@@ -29,7 +37,8 @@
 #' @author Marcin Imielinski
 #' @usage multicoco(cov, numlevs = 1, base = max(10, 1e5/max(width(cov))),
 #' fields = c("gc", "map"), iterative = TRUE, presegment = TRUE,
-#' min.segwidth = 5e6, mono = TRUE, verbose = TRUE, FUN = NULL, mc.cores = 1)
+#' min.segwidth = 5e6, mono = TRUE, verbose = TRUE, FUN = NULL, ...,
+#' mc.cores = 1, exome = FALSE)
 #' @export
 
 multicoco = function(cov, numlevs = 1, base = max(10, 1e5 / max(width(cov))),
@@ -329,7 +338,7 @@ fragCounter = function(bam, cov = NULL, midpoint = FALSE,window = 200, gc.rds.di
 #' @author Trent Walradt
 #' @export
 
-bam.cov.exome = function(bam.file, chunksize = 1e5, min.mapq = 30, verbose = TRUE, max.tlen = 1e4, st.flag = "-f 0x02 -F 0x10", fragments = TRUE, do.gc = FALSE, bai = NULL)
+bam.cov.exome = function(bam.file, chunksize = 1e5, min.mapq = 30, verbose = TRUE, max.tlen = 1e4, st.flag = "-f 0x02 -F 0x10", fragments = TRUE, do.gc = FALSE)
 {
   ## check that the BAM is valid
     check_valid_bam = readChar(gzfile(bam.file, 'r'), 4)
@@ -356,19 +365,29 @@ bam.cov.exome = function(bam.file, chunksize = 1e5, min.mapq = 30, verbose = TRU
   }
   while (length(chunk <- readLines(p, n = chunksize)) > 0)
   {
+#  browser(expr = i == 2)
+#  browser()
     i = i+1
     chunk = fread(paste(chunk, collapse = "\n"), header = F)[abs(V3) <= max.tlen, ]
     chunk[, V2 := ifelse(V3 < 0, V2 + V3, V2)] # Convert negative reads to positive
     chunk[, V3 := abs(V3)]
-    browser()
     if (grepl("chr",chunk$V1[1])) {
       chunk[, V1 := gsub("chr", "", V1)]
     }
-    chunk.gr = GRanges(seqname = chunk$V1, ranges = IRanges(start = chunk$V2, width = chunk$V3))
-    chunk.match = gr.match(chunk.gr, exome)
-    chunk[, bin := chunk.match]
-    tabs = chunk[, list(newcount = length(V1)), by = list(chr = as.character(V1), bin)] ## tabulate reads to bins data.table style
-    counts[tabs, count := count + newcount] ## populate latest bins in master data.table
+    chunk = chunk[which(V1 %in% seqlevels(exome))] ## Exome only has seqlevels 1-22,X,Y,M, remove any additional seqlevels from sample
+    if (nrow(chunk) > 0) {
+      chunk.gr = GRanges(seqname = chunk$V1, ranges = IRanges(start = chunk$V2, width = chunk$V3))
+      ## Robust to chunsk that fall entirely between exons
+      chunk.match = tryCatch(
+        gr.match(chunk.gr,exome),
+        error = function(e) e
+      )
+      if(!inherits(chunk.match, "error")){
+        chunk[, bin := chunk.match]
+        tabs = chunk[, list(newcount = length(V1)), by = list(chr = as.character(V1), bin)] ## tabulate reads to bins data.table style
+        counts[tabs, count := count + newcount] ## populate latest bins in master data.table
+      }
+    }
     ## should be no memory issues here since we preallocate the data table .. but they still appear
     if (do.gc){
         print('GC!!')
@@ -648,7 +667,7 @@ correctcov_stub = function(cov.wig, mappability = 0.9, samplesize = 5e4, verbose
 #' @author Trent Walradt
 #' @usage coco(cov, base = max(10, 1e5/max(width(cov))), fields = c("gc", "map"), iterative = TRUE,
 #' presegment = TRUE, min.segwidth = 5e6, verbose = TRUE,
-#' FUN = NULL, mc.cores = 1, exome = TRUE, imageroot = NULL)
+#' FUN = NULL, ..., mc.cores = 1, exome = TRUE, imageroot = NULL)
 #' @export
 
 coco = function(cov, base = max(10, 1e5 / max(width(cov))), fields = c("gc", "map"),
