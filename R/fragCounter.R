@@ -70,6 +70,7 @@ multicoco = function(cov, numlevs = 1, base = max(10, 1e5 / max(width(cov))),
     ## cov.dt[, eval(paste("lev", k, sep = '')) := as.character(sl[seqnames] + as.numeric(Rle(as.character(1:length(start)), rep(base^k, length(start)))[1:length(start)])/length(start)), by = seqnames]
 
     ##  -.01 just to make Trent Happy ie produce identical result to above
+    ## This line creates column that you can use to collapse the data with
     cov.dt[, eval(paste("lev", k, sep = '')) :=  as.character(sl[seqnames] + ceiling((1:.N-0.01)/base^k)), by = seqnames]
 
     parentmap[[k]] = data.table(parent = cov.dt[, get(paste("lev", k, sep = ''))], child = cov.dt[, get(paste("lev", k-1, sep = ''))], key = 'child')[!duplicated(child), ]
@@ -253,6 +254,7 @@ multicoco = function(cov, numlevs = 1, base = max(10, 1e5 / max(width(cov))),
     }
   }
   cov.dt$reads.corrected = grs[[1]][cov.dt$lev0, ]$reads.corrected
+  cov.dt[reads.corrected < 0, reads.corrected := NA]
   rm(grs)
   gc()        
   if (verbose) {
@@ -284,14 +286,17 @@ multicoco = function(cov, numlevs = 1, base = max(10, 1e5 / max(width(cov))),
 #' @param exome boolean If TRUE, perform correction using exons as bins instead of fixed size
 #' @export
 
-fragCounter = function(bam, cov = NULL, midpoint = FALSE,window = 200, gc.rds.dir, map.rds.dir, minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE) {
+fragCounter = function(bam, cov = NULL, midpoint = FALSE, window = 200, gc.rds.dir, map.rds.dir, minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE) {
   out.rds = paste(outdir, '/cov.rds', sep = '')
   imageroot = gsub('.rds$', '', out.rds)
-
+  if (verbose) {
+    cat('Testing that changes were made\n')
+  }
   if (exome == TRUE) {
     cov = PrepareCov(bam, cov = NULL, midpoint = FALSE, window = 200, minmapq = 1, paired = TRUE, outdir, exome = TRUE)
     cov = correctcov_stub(cov, gc.rds.dir = gc.rds.dir, map.rds.dir = map.rds.dir, exome = TRUE)
     cov$reads.corrected = coco(cov, mc.cores = 1, fields = c('gc', 'map'), iterative = T, exome = TRUE, imageroot = imageroot)$reads.corrected
+
   } else {
     cov = PrepareCov(bam, cov = NULL, midpoint = FALSE, window = 200, minmapq = 1, paired = TRUE, outdir)
     cov = correctcov_stub(cov, gc.rds.dir = gc.rds.dir, map.rds.dir = map.rds.dir)
@@ -346,7 +351,7 @@ bam.cov.exome = function(bam.file, chunksize = 1e5, min.mapq = 30, verbose = TRU
         stop("Cannot open BAM. A valid BAM for 'bam_file' must be provided.")
     }
   cmd = 'samtools view %s %s -q %s | cut -f "3,4,9"' ## cmd line to grab the rname, pos, and tlen columns
-  exome = reduce(skidb::read_gencode('exon'))
+  exome = reduce(skidb::read_gencode('exon')) ## Read in exome GRanges to get exons to used as your windows instead of fixed width
   numwin = length(exome)
   cat('Calling', sprintf(cmd, st.flag, bam.file, min.mapq), '\n')
   p = pipe(sprintf(cmd, st.flag, bam.file, min.mapq), open = 'r')
@@ -371,13 +376,13 @@ bam.cov.exome = function(bam.file, chunksize = 1e5, min.mapq = 30, verbose = TRU
     chunk = fread(paste(chunk, collapse = "\n"), header = F)[abs(V3) <= max.tlen, ]
     chunk[, V2 := ifelse(V3 < 0, V2 + V3, V2)] # Convert negative reads to positive
     chunk[, V3 := abs(V3)]
-    if (grepl("chr",chunk$V1[1])) {
+    if (grepl("chr",chunk$V1[1])) { # Robust to samples that start with or without 'chr' before chromosomes
       chunk[, V1 := gsub("chr", "", V1)]
     }
     chunk = chunk[which(V1 %in% seqlevels(exome))] ## Exome only has seqlevels 1-22,X,Y,M, remove any additional seqlevels from sample
     if (nrow(chunk) > 0) {
       chunk.gr = GRanges(seqname = chunk$V1, ranges = IRanges(start = chunk$V2, width = chunk$V3))
-      ## Robust to chunsk that fall entirely between exons
+      ## Robust to chunks that fall entirely between exons
       chunk.match = tryCatch(
         gr.match(chunk.gr,exome),
         error = function(e) e
@@ -433,9 +438,9 @@ bam.cov.exome = function(bam.file, chunksize = 1e5, min.mapq = 30, verbose = TRU
 MAP.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', bw.path = '~/DB/UCSC/wgEncodeCrgMapabilityAlign100mer.bigWig', twobit.win = 1e3, mc.cores = 10, exome = FALSE) {
   if (exome == TRUE){
     tiles = reduce(read_gencode('exon'))
-    seqlevelsStyle(tiles) <- "UCSC"
+    seqlevelsStyle(tiles) <- "UCSC" #Formatting chromosome notation
   } else {
-    tiles = gr.tile(seqlengths(TwoBitFile(twobitURL)),win.size)
+    tiles = gr.tile(seqlengths(TwoBitFile(twobitURL)), win.size)
   }
   values(tiles) = NULL
   tiles = tiles %Q% (seqnames %in% c(paste0("chr",seq(1,22)),"chrX","chrY")) # removes all chromomes except 1:22 and X/Y
@@ -779,11 +784,11 @@ coco = function(cov, base = max(10, 1e5 / max(width(cov))), fields = c("gc", "ma
         x2$covariate = x2[, f]
         x2s = x2[select, ]                    
         if (!is.null(seg)) {  ## here we apply a prelmiinary segmentation to correct for large scale copy variation allow more power to reveal the covariate signal
-          if (verbose) {
+          if (verbose) {  
             message('Applying preliminary segmentation prior to loess fitting')
           }
           x.grs = gr.val(seg2gr(x[select, ], seqlengths = NULL), seg, 'reads')
-          x2s$reads = x2s$reads/x.grs$reads
+          x2s$reads = x2s$reads/x.grs$reads 
         }
         fit = tryCatch(loess(reads ~ covariate, data = x2s, span = 0.3), error = function(e) NULL)
         x$reads = NA
@@ -825,20 +830,35 @@ coco = function(cov, base = max(10, 1e5 / max(width(cov))), fields = c("gc", "ma
               dev.off()
             }
 
-            x$reads = x2$reads/predict(fit, x2) ## apply correction
+            
+            predicted.fit = predict(fit, x2) ## apply correction
+            reads.x2 = x2$reads
+            x$reads = x2$reads/predicted.fit ## Split this into 2 lines
+
           }
           else {
             print("Loess failed, yielding NA loess object, continuing without transforming data")
           }
         }, error = function(e) print("Unspecified loess or figure output error"))
       }
-      return(x$reads)
+      return(list(x$reads, predicted.fit, reads.x2))
     }
   }
-  cov.dt$reads.corrected = FUN(as.data.frame(cov.dt), fields, seg = seg);
+  FUN.out = FUN(as.data.frame(cov.dt), fields, seg = seg)
+  cov.dt$reads.corrected = FUN.out[[1]]
+#browser()
+  cov.dt[reads.corrected < 0, reads.corrected := NA] #' twalradt Tuesday, Oct 09, 2018 11:46:47 AM  ADDED THIS LINE and commented out the next line
+  if (verbose) {
+    cat('Converted negatives to Nas\n')
+  }
+                                        #  cov.dt[, reads.corrected := pmax(0,reads.corrected)]
+  cov.dt$predicted.fit = FUN.out[[2]]
+  cov.dt$reads.x2 = FUN.out[[3]]
+
+  #cov.dt$reads.corrected = FUN(as.data.frame(cov.dt), fields, seg = seg)[[1]] # Returning first item (x$reads)
   gc()        
   if (verbose) {
-    cat('Converting to GRanges\n')
+    cat('Converting to GRanges, also testing this version\n')
   }
   gc()      
   out = seg2gr(as.data.frame(cov.dt), seqlengths = seqlengths(cov)) 
