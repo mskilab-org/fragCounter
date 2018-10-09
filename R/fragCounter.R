@@ -289,9 +289,6 @@ multicoco = function(cov, numlevs = 1, base = max(10, 1e5 / max(width(cov))),
 fragCounter = function(bam, cov = NULL, midpoint = FALSE, window = 200, gc.rds.dir, map.rds.dir, minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE) {
   out.rds = paste(outdir, '/cov.rds', sep = '')
   imageroot = gsub('.rds$', '', out.rds)
-  if (verbose) {
-    cat('Testing that changes were made\n')
-  }
   if (exome == TRUE) {
     cov = PrepareCov(bam, cov = NULL, midpoint = FALSE, window = 200, minmapq = 1, paired = TRUE, outdir, exome = TRUE)
     cov = correctcov_stub(cov, gc.rds.dir = gc.rds.dir, map.rds.dir = map.rds.dir, exome = TRUE)
@@ -858,7 +855,7 @@ coco = function(cov, base = max(10, 1e5 / max(width(cov))), fields = c("gc", "ma
   #cov.dt$reads.corrected = FUN(as.data.frame(cov.dt), fields, seg = seg)[[1]] # Returning first item (x$reads)
   gc()        
   if (verbose) {
-    cat('Converting to GRanges, also testing this version\n')
+    cat('Converting to GRanges\n')
   }
   gc()      
   out = seg2gr(as.data.frame(cov.dt), seqlengths = seqlengths(cov)) 
