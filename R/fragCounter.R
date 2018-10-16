@@ -998,3 +998,69 @@ bam.cov.skel = function(bam.file, skeleton, chunksize = 1e5, min.mapq = 30, verb
 }
 
 
+#' @name make.blacklist
+#' @title Make a list of regions of the genome in which there is coverage in the normal samples
+#' @description
+#' Look at all available normal samples and find regions where some percentage of all normal samples have at least 1 read
+#'
+#' @param pairs string Input data.table with columns 'pair' and 'bam' corresponding to the sample name and bath to normal bam
+#' @param cutoff double Threshold for what percentage of normal samples must have reads for the region to be included
+#' @return Data.table of regions to include when calculating corrected reads
+#' @author Trent Walradt
+#' @export
+
+make.blacklist = function(pairs, cutoff = 0.9)
+{
+
+  pairs.bl = readRDS(pairs)
+  setkeyv(pairs.bl, "pair")
+
+  bl = mclapply(pairs.bl[, pair], function(nm){
+    this.cov = bam.cov.exome(pairs.bl[nm, bam], chunksize = 1e6)
+    if (!is.null(this.cov)){
+      this.cov = transpose(gr2dt(tmp)[,.(counts)])
+      message(nm)
+      print(dim(this.cov))
+    } else {this.cov = data.table(NA)}
+    return(this.cov)}
+  , mc.cores = 15)
+
+  bl.bind = rbindlist(bl, fill = T)
+  bl.bind.t = transpose(bl.bind)
+  for(col in names(bl.bind.t)) set(bl.bind.t, i = which(bl.bind.t[[col]] < 1 ), j = col, value = NA)
+  for(col in names(bl.bind.t)) set(bl.bind.t, i = which(!is.na(bl.bind.t[[col]])), j = col, value = 1)
+  for(col in names(bl.bind.t)) set(bl.bind.t, i = which(is.na(bl.bind.t[[col]])), j = col, value = 0)
+  bl.bind.t[, black_list_pct := rowSums(.SD)/dim(bl.bind.t)[2]]
+  bl.bind.t[, blacklisted := ifelse(black_list_pct > cutoff, "Keep", "Remove")]
+  exome = gr2dt(reduce(read_gencode('exon')))[, blacklisted := bl.bind.t$blacklisted][blacklisted == "Keep"][, blacklisted := NULL]
+  return(exome)
+
+}
+
+
+
+## pairs.bl = readRDS("~/lab/projects/dryclean/db/db.pub/pairs.rds")
+## setkeyv(pairs.bl, "pair")
+## pairs.bl = pairs.bl[1:2]
+## test = mclapply(pairs.bl[, pair], function(nm){
+##   this.cov = bam.cov.exome(pairs.bl[nm, bam], chunksize = 1e6)
+##   if (!is.null(this.cov)){
+##     this.cov = transpose(gr2dt(tmp)[,.(counts)])
+##     message(nm)
+##     print(dim(this.cov))
+##   } else {this.cov = data.table(NA)}
+##   return(this.cov)}
+## , mc.cores = 15)
+## bl.bind = rbindlist(test, fill = T)
+## bl.bind.t = transpose(bl.bind)
+## dt.pon.raw = copy(bl.bind.t)
+## dt.pon = copy(dt.pon.raw)
+## for(col in names(dt.pon)) set(dt.pon, i = which(dt.pon[[col]] < 1 ), j = col, value = NA) #there are no preexisting NA's, so this works
+## for(col in names(dt.pon)) set(dt.pon, i = which(!is.na(dt.pon[[col]])), j = col, value = 1)
+## for(col in names(dt.pon)) set(dt.pon, i = which(is.na(dt.pon[[col]])), j = col, value = 0)
+## dt.pon[, black_list_pct := rowSums(.SD)/dim(dt.pon)[2]]
+## dt.pon[black_list_pct > 0.9]
+## dt.pon[, blacklisted := ifelse(black_list_pct > 0.9, "Keep", "Remove")]
+## exome = gr2dt(reduce(read_gencode('exon')))[, blacklisted := dt.pon$blacklisted][blacklisted == "Keep"][, blacklisted := NULL]
+
+
