@@ -24,7 +24,7 @@ of sorted GRanges object or GRanges object}
 \item{exome}{boolean If TRUE, look in gc/map.rds.dir for files called 'gcexome.rds' and 'mapexome.rds'}
 }
 \description{
-Prepares GC, mappability, and coverage files for multicoco
+prepares GC, mappability, and coverage files for multicoco
 }
 \author{
 Trent Walradt

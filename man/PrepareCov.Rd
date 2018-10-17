@@ -4,11 +4,13 @@
 \alias{PrepareCov}
 \title{PrepareCov}
 \usage{
-PrepareCov(bam, cov = NULL, midpoint = FALSE, window = 200, minmapq = 1,
-  paired = TRUE, outdir = NULL, exome = FALSE)
+PrepareCov(bam, skeleton, cov = NULL, midpoint = FALSE, window = 200,
+  minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE)
 }
 \arguments{
 \item{bam}{path to .bam file}
+
+\item{skeleton}{string Input data.table with intervals for which there is coverage data}
 
 \item{cov}{Path to existing coverage rds or bedgraph}
 

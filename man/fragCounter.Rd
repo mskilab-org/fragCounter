@@ -4,11 +4,15 @@
 \alias{fragCounter}
 \title{fragCounter}
 \usage{
-fragCounter(bam, cov = NULL, midpoint = FALSE, window = 200, gc.rds.dir,
-  map.rds.dir, minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE)
+fragCounter(bam,
+  skeleton = "/gpfs/commons/home/twalradt/fragcounter/sample_blacklist.rds",
+  cov = NULL, midpoint = FALSE, window = 200, gc.rds.dir, map.rds.dir,
+  minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE)
 }
 \arguments{
 \item{bam}{string path to .bam file}
+
+\item{skeleton}{string Input data.table with intervals for which there is coverage data}
 
 \item{cov}{string path to existing coverage rds or bedgraph}
 

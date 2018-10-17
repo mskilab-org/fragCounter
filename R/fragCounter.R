@@ -341,7 +341,7 @@ fragCounter = function(bam, skeleton = "/gpfs/commons/home/twalradt/fragcounter/
 #' @author Trent Walradt
 #' @export
 
-bam.cov.exome = function(bam.file, chunksize = 1e5, min.mapq = 30, verbose = TRUE, max.tlen = 1e4, st.flag = "-f 0x02 -F 0x10", fragments = TRUE, do.gc = FALSE)
+bam.cov.exome = function(bam.file, chunksize = 1e6, min.mapq = 1, verbose = TRUE, max.tlen = 1e4, st.flag = "-f 0x02 -F 0x10", fragments = TRUE, do.gc = FALSE)
 {
   ## check that the BAM is valid
     check_valid_bam = readChar(gzfile(bam.file, 'r'), 4)
@@ -567,7 +567,7 @@ PrepareCov = function(bam, skeleton, cov = NULL, midpoint = FALSE, window = 200,
 
 
 #' @title Correct coverage stub
-#' @description Prepares GC, mappability, and coverage files for multicoco
+#' @description prepares GC, mappability, and coverage files for multicoco
 #' @name correctcov_stub
 #' @param cov.wig wig file of coverage tiles of width W or pointer to rds file
 #' of sorted GRanges object or GRanges object
@@ -1039,28 +1039,6 @@ make.blacklist = function(pairs, cutoff = 0.9)
 
 
 
-## pairs.bl = readRDS("~/lab/projects/dryclean/db/db.pub/pairs.rds")
-## setkeyv(pairs.bl, "pair")
-## pairs.bl = pairs.bl[1:2]
-## test = mclapply(pairs.bl[, pair], function(nm){
-##   this.cov = bam.cov.exome(pairs.bl[nm, bam], chunksize = 1e6)
-##   if (!is.null(this.cov)){
-##     this.cov = transpose(gr2dt(tmp)[,.(counts)])
-##     message(nm)
-##     print(dim(this.cov))
-##   } else {this.cov = data.table(NA)}
-##   return(this.cov)}
-## , mc.cores = 15)
-## bl.bind = rbindlist(test, fill = T)
-## bl.bind.t = transpose(bl.bind)
-## dt.pon.raw = copy(bl.bind.t)
-## dt.pon = copy(dt.pon.raw)
-## for(col in names(dt.pon)) set(dt.pon, i = which(dt.pon[[col]] < 1 ), j = col, value = NA) #there are no preexisting NA's, so this works
-## for(col in names(dt.pon)) set(dt.pon, i = which(!is.na(dt.pon[[col]])), j = col, value = 1)
-## for(col in names(dt.pon)) set(dt.pon, i = which(is.na(dt.pon[[col]])), j = col, value = 0)
-## dt.pon[, black_list_pct := rowSums(.SD)/dim(dt.pon)[2]]
-## dt.pon[black_list_pct > 0.9]
-## dt.pon[, blacklisted := ifelse(black_list_pct > 0.9, "Keep", "Remove")]
-## exome = gr2dt(reduce(read_gencode('exon')))[, blacklisted := dt.pon$blacklisted][blacklisted == "Keep"][, blacklisted := NULL]
+
 
 
