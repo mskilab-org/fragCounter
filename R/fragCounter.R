@@ -527,8 +527,8 @@ GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win 
 
 PrepareCov = function(bam, skeleton, cov = NULL, midpoint = FALSE, window = 200, minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE) {
   if (exome == TRUE){
-#    cov = bam.cov.exome(bam, chunksize = 1e6, min.mapq = 1)
-    cov = bam.cov.skel(bam, skeleton, chunksize = 1e6, min.mapq = 1)
+    cov = bam.cov.exome(bam, chunksize = 1e6, min.mapq = 1)
+#    cov = bam.cov.skel(bam, skeleton, chunksize = 1e6, min.mapq = 1) #' twalradt Tuesday, Nov 27, 2018 07:22:14 PM Use this if you want to do implement the blacklist at this stage vs. later
   } else {
     if (is.null(bam)) {
       bam = ''

@@ -4,9 +4,9 @@
 \alias{bam.cov.exome}
 \title{Get coverage as GRanges from BAM using exons as tiles}
 \usage{
-bam.cov.exome(bam.file, chunksize = 1e+06, min.mapq = 1, verbose = TRUE,
-  max.tlen = 10000, st.flag = "-f 0x02 -F 0x10", fragments = TRUE,
-  do.gc = FALSE)
+bam.cov.exome(bam.file, chunksize = 1e+06, min.mapq = 1,
+  verbose = TRUE, max.tlen = 10000, st.flag = "-f 0x02 -F 0x10",
+  fragments = TRUE, do.gc = FALSE)
 }
 \arguments{
 \item{bam.file}{string Input BAM file}
