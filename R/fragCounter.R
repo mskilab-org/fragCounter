@@ -1,8 +1,7 @@
 #' @import GenomicRanges
 #' @import gUtils
-#' @import data.table
 #' @import rtracklayer
-#' @import bamUtils
+#' @importFrom data.table data.table fread rbindlist set setkey setkeyv setnames transpose as.data.table
 #' @importFrom stats cor loess predict quantile
 #' @importFrom skidb read_gencode
 #' @importFrom GenomeInfoDb seqlevels seqlengths seqlevelsStyle<- seqlevelsInUse
@@ -49,7 +48,7 @@ multicoco = function(cov, numlevs = 1, base = max(10, 1e5 / max(width(cov))),
     cat('Converting to data.table\n')
   }
   WID = max(width(cov))
-  library(data.table)
+##  library(data.table) #' twalradt Wednesday, Jan 16, 2019 03:54:24 PM
   cov.dt = gr2dt(cov)        
   sl = structure(as.numeric(1:length(seqlevels(cov))), names = seqlevels(cov))       
   if (verbose) {
@@ -81,7 +80,7 @@ multicoco = function(cov, numlevs = 1, base = max(10, 1e5 / max(width(cov))),
     if (verbose) {
       cat('Presegmenting at ', as.integer(WID*base^(numlevs)), ' bp scale \n')
     }
-    require(DNAcopy)
+##    require(DNAcopy) #' twalradt Wednesday, Jan 16, 2019 04:36:46 PM
     set.seed(42) #' twalradt Friday, Apr 20, 2018 01:07:28 PM
     if (exome == TRUE) {
       tiles = gr.tile(sl, width = 1e5)
@@ -303,7 +302,7 @@ fragCounter = function(bam, skeleton = "/gpfs/commons/home/twalradt/fragcounter/
   if (!is.null(outdir)) {
     out.rds = paste(outdir, '/cov.rds', sep = '')
     out.corr = paste(gsub('.rds$', '', out.rds), '.corrected.bw', sep = '')
-    if (!is.null(tryCatch({library(rtracklayer); 'success'}, error = function(e) NULL))) {
+##    if (!is.null(tryCatch({library(rtracklayer); 'success'}, error = function(e) NULL))) { #' twalradt Wednesday, Jan 16, 2019 03:55:28 PM
       cov.corr.out = cov
       cov.corr.out$score = cov$reads.corrected
       cov.corr.out$score[is.na(cov.corr.out$score)] = -1
@@ -313,7 +312,7 @@ fragCounter = function(bam, skeleton = "/gpfs/commons/home/twalradt/fragcounter/
       } else {
         export(cov.corr.out[, 'score'], out.corr, 'bigWig', dataFormat = 'fixedStep')
       }
-    }
+##    } #' twalradt Wednesday, Jan 16, 2019 03:55:58 PM
     saveRDS(cov, paste(gsub('.rds$', '', out.rds), '.rds', sep = ''))
   }
   return(cov)
@@ -543,12 +542,12 @@ PrepareCov = function(bam, skeleton, cov = NULL, midpoint = FALSE, window = 200,
         paired = TRUE
       }
       if (paired) {
-        cov = bam.cov.tile(bam, window = window, chunksize = 1e6, midpoint = FALSE, min.mapq = 1)  ## counts midpoints of fragments
+        cov = bamUtils::bam.cov.tile(bam, window = window, chunksize = 1e6, midpoint = FALSE, min.mapq = 1)  ## counts midpoints of fragments
       }
       else {
         sl = seqlengths(BamFile(bam))
         tiles = gr.tile(sl, window)
-        cov = bam.cov.gr(bam, intervals = tiles, isPaired = NA, isProperPair = NA, hasUnmappedMate = NA, chunksize = 1e7)  ## counts midpoints of fragments    # Can we increase chunksize?
+        cov = bamUtils::bam.cov.gr(bam, intervals = tiles, isPaired = NA, isProperPair = NA, hasUnmappedMate = NA, chunksize = 1e7)  ## counts midpoints of fragments    # Can we increase chunksize?
         cov$count = cov$records/width(cov)
       }
     }
@@ -682,7 +681,7 @@ coco = function(cov, base = max(10, 1e5 / max(width(cov))), fields = c("gc", "ma
 
   cov = sort(sortSeqlevels(cov))
   WID = max(width(cov))
-  library(data.table)
+##  library(data.table) #' twalradt Wednesday, Jan 16, 2019 03:54:02 PM 
   cov.dt = gr2dt(cov)        
   sl = structure(as.numeric(1:length(seqlevels(cov))), names = seqlevels(cov))       
   if (verbose) {
@@ -696,7 +695,7 @@ coco = function(cov, base = max(10, 1e5 / max(width(cov))), fields = c("gc", "ma
     if (verbose) {
       cat('Presegmenting at ', as.integer(WID*base), ' bp scale \n')
     }
-    require(DNAcopy)
+##    require(DNAcopy) #' twalradt Wednesday, Jan 16, 2019 04:05:49 PM
     set.seed(42) #' twalradt Friday, Apr 20, 2018 01:07:28 PM
     if (exome == TRUE) {
       tiles = gr.tile(sl, width = 1e5)
