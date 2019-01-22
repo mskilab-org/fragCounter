@@ -1,10 +1,9 @@
 #' @import GenomicRanges
 #' @import gUtils
 #' @import rtracklayer
-#' @importFrom data.table data.table fread rbindlist set setkey setkeyv setnames transpose as.data.table
+#' @importFrom data.table data.table fread rbindlist set setkey setkeyv setnames transpose
 #' @importFrom stats cor loess predict quantile
 #' @importFrom skidb read_gencode
-#' @importFrom GenomeInfoDb seqlevels seqlengths seqlevelsStyle<- seqlevelsInUse
 #' @importFrom Biostrings alphabetFrequency
 #' @importFrom parallel mclapply
 #' @importFrom Rsamtools BamFile
@@ -50,7 +49,7 @@ multicoco = function(cov, numlevs = 1, base = max(10, 1e5 / max(width(cov))),
   WID = max(width(cov))
 ##  library(data.table) #' twalradt Wednesday, Jan 16, 2019 03:54:24 PM
   cov.dt = gr2dt(cov)        
-  sl = structure(as.numeric(1:length(seqlevels(cov))), names = seqlevels(cov))       
+  sl = structure(as.numeric(1:length(GenomeInfoDb::seqlevels(cov))), names = GenomeInfoDb::seqlevels(cov))       
   if (verbose) {
     cat('Grouping intervals\n')
   }
@@ -76,7 +75,7 @@ multicoco = function(cov, numlevs = 1, base = max(10, 1e5 / max(width(cov))),
   }
   if (presegment) { ## perform rough segmentation at highest level
     seg = NULL
-    sl = seqlengths(cov)
+    sl = GenomeInfoDb::seqlengths(cov)
     if (verbose) {
       cat('Presegmenting at ', as.integer(WID*base^(numlevs)), ' bp scale \n')
     }
@@ -85,7 +84,7 @@ multicoco = function(cov, numlevs = 1, base = max(10, 1e5 / max(width(cov))),
     if (exome == TRUE) {
       tiles = gr.tile(sl, width = 1e5)
       tiles = tiles %Q% (seqnames %in% c(seq(1,22),"X","Y"))
-      seqlevels(tiles) = seqlevelsInUse(tiles) # Get rid of empty seqname factor levels
+      GenomeInfoDb::seqlevels(tiles) = GenomeInfoDb::seqlevelsInUse(tiles) # Get rid of empty seqname factor levels
       tmp.cov = tiles %$% cov
       tmp.cov = tmp.cov %Q% (!is.na(reads))
       # tmp.cov = gr.val(tiles, cov, val = c('reads', 'gc', 'map'), na.rm = TRUE)
@@ -106,7 +105,7 @@ multicoco = function(cov, numlevs = 1, base = max(10, 1e5 / max(width(cov))),
       if (nrow(seg.dt)>0) {
         seg = seg2gr(seg.dt[, list(seqnames = seqnames,
                                    start = ifelse(c(FALSE, seqnames[-length(seqnames)]==seqnames[-1]), c(1, start[-1]), 1),
-                                   end = ifelse(c(seqnames[-length(seqnames)]==seqnames[-1], FALSE), c(start[-1]-1, Inf), seqlengths(seg)[as.character(seqnames)]))], seqlengths = sl)
+                                   end = ifelse(c(seqnames[-length(seqnames)]==seqnames[-1], FALSE), c(start[-1]-1, Inf), GenomeInfoDb::seqlengths(seg)[as.character(seqnames)]))], seqlengths = sl)
         seg = gr.val(seg, tmp.cov, 'reads') ## populate with mean coverage
         seg$reads = seg$reads/sum(as.numeric(seg$reads*width(seg))/sum(as.numeric(width(seg)))) ## normalize segs by weigthed mean (so these become a correction factor)
       }
@@ -260,7 +259,7 @@ multicoco = function(cov, numlevs = 1, base = max(10, 1e5 / max(width(cov))),
     cat('Converting to GRanges\n')
   }
   gc()      
-  out = seg2gr(as.data.frame(cov.dt), seqlengths = seqlengths(cov)) 
+  out = seg2gr(as.data.frame(cov.dt), seqlengths = GenomeInfoDb::seqlengths(cov)) 
   if (verbose) {
     cat('Made GRanges\n')
   }
@@ -376,7 +375,7 @@ bam.cov.exome = function(bam.file, chunksize = 1e6, min.mapq = 1, verbose = TRUE
     if (grepl("chr",chunk$V1[1])) { # Robust to samples that start with or without 'chr' before chromosomes
       chunk[, V1 := gsub("chr", "", V1)]
     }
-    chunk = chunk[which(V1 %in% seqlevels(exome))] ## Exome only has seqlevels 1-22,X,Y,M, remove any additional seqlevels from sample
+    chunk = chunk[which(V1 %in% GenomeInfoDb::seqlevels(exome))] ## Exome only has seqlevels 1-22,X,Y,M, remove any additional seqlevels from sample
     if (nrow(chunk) > 0) {
       chunk.gr = GRanges(seqname = chunk$V1, ranges = IRanges(start = chunk$V2, width = chunk$V3))
       ## Robust to chunks that fall entirely between exons
@@ -435,13 +434,13 @@ bam.cov.exome = function(bam.file, chunksize = 1e6, min.mapq = 1, verbose = TRUE
 MAP.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', bw.path = '~/DB/UCSC/wgEncodeCrgMapabilityAlign100mer.bigWig', twobit.win = 1e3, mc.cores = 10, exome = FALSE) {
   if (exome == TRUE){
     tiles = reduce(read_gencode('exon'))
-    seqlevelsStyle(tiles) <- "UCSC" #Formatting chromosome notation
+    GenomeInfoDb::seqlevelsStyle(tiles) <- "UCSC" #Formatting chromosome notation
   } else {
-    tiles = gr.tile(seqlengths(TwoBitFile(twobitURL)), win.size)
+    tiles = gr.tile(GenomeInfoDb::seqlengths(TwoBitFile(twobitURL)), win.size)
   }
   values(tiles) = NULL
   tiles = tiles %Q% (seqnames %in% c(paste0("chr",seq(1,22)),"chrX","chrY")) # removes all chromomes except 1:22 and X/Y
-  seqlevels(tiles) = seqlevelsInUse(tiles) # Get rid of empty seqname factor levels
+  GenomeInfoDb::seqlevels(tiles) = GenomeInfoDb::seqlevelsInUse(tiles) # Get rid of empty seqname factor levels
   x = seq(1,(length(tiles) / twobit.win)) 
   map.score = function(x) {
     this.ix = seq(1 + ((x-1) * twobit.win), x * twobit.win)
@@ -478,9 +477,9 @@ MAP.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', bw.path = 
 GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win = 1e3, mc.cores = 15, exome = FALSE) {
   if (exome == TRUE){
     tiles = reduce(read_gencode('exon'))
-    seqlevelsStyle(tiles) <- "UCSC"
+    GenomeInfoDb::seqlevelsStyle(tiles) <- "UCSC"
   } else {
-    tiles = gr.tile(seqlengths(TwoBitFile(twobitURL)),win.size)
+    tiles = gr.tile(GenomeInfoDb::seqlengths(TwoBitFile(twobitURL)),win.size)
   }
   values(tiles) = NULL
   tiles = tiles %Q% (seqnames %in% c(paste0("chr",seq(1,22)),"chrX","chrY")) # removes all chromomes except 1:22 and X/Y
@@ -545,7 +544,7 @@ PrepareCov = function(bam, skeleton, cov = NULL, midpoint = FALSE, window = 200,
         cov = bamUtils::bam.cov.tile(bam, window = window, chunksize = 1e6, midpoint = FALSE, min.mapq = 1)  ## counts midpoints of fragments
       }
       else {
-        sl = seqlengths(BamFile(bam))
+        sl = GenomeInfoDb::seqlengths(BamFile(bam))
         tiles = gr.tile(sl, window)
         cov = bamUtils::bam.cov.gr(bam, intervals = tiles, isPaired = NA, isProperPair = NA, hasUnmappedMate = NA, chunksize = 1e7)  ## counts midpoints of fragments    # Can we increase chunksize?
         cov$count = cov$records/width(cov)
@@ -683,7 +682,7 @@ coco = function(cov, base = max(10, 1e5 / max(width(cov))), fields = c("gc", "ma
   WID = max(width(cov))
 ##  library(data.table) #' twalradt Wednesday, Jan 16, 2019 03:54:02 PM 
   cov.dt = gr2dt(cov)        
-  sl = structure(as.numeric(1:length(seqlevels(cov))), names = seqlevels(cov))       
+  sl = structure(as.numeric(1:length(GenomeInfoDb::seqlevels(cov))), names = GenomeInfoDb::seqlevels(cov))       
   if (verbose) {
     cat('Grouping intervals\n')
   }
@@ -691,7 +690,7 @@ coco = function(cov, base = max(10, 1e5 / max(width(cov))), fields = c("gc", "ma
   cov.dt[, lev1 :=  as.character(sl[seqnames] + ceiling((1:.N-0.01)/base)), by = seqnames]
   if (presegment) { ## perform rough segmentation at highest level
     seg = NULL
-    sl = seqlengths(cov)
+    sl = GenomeInfoDb::seqlengths(cov)
     if (verbose) {
       cat('Presegmenting at ', as.integer(WID*base), ' bp scale \n')
     }
@@ -700,7 +699,7 @@ coco = function(cov, base = max(10, 1e5 / max(width(cov))), fields = c("gc", "ma
     if (exome == TRUE) {
       tiles = gr.tile(sl, width = 1e5)
       tiles = tiles %Q% (seqnames %in% c(seq(1,22),"X","Y"))
-      seqlevels(tiles) = seqlevelsInUse(tiles) # Get rid of empty seqname factor levels
+      GenomeInfoDb::seqlevels(tiles) = GenomeInfoDb::seqlevelsInUse(tiles) # Get rid of empty seqname factor levels
       tmp.cov = tiles %$% cov
       tmp.cov = tmp.cov %Q% (!is.na(reads))
       # tmp.cov = gr.val(tiles, cov, val = c('reads', 'gc', 'map'), na.rm = TRUE)
@@ -721,7 +720,7 @@ coco = function(cov, base = max(10, 1e5 / max(width(cov))), fields = c("gc", "ma
       if (nrow(seg.dt)>0) {
         seg = seg2gr(seg.dt[, list(seqnames = seqnames,
                                    start = ifelse(c(FALSE, seqnames[-length(seqnames)]==seqnames[-1]), c(1, start[-1]), 1),
-                                   end = ifelse(c(seqnames[-length(seqnames)]==seqnames[-1], FALSE), c(start[-1]-1, Inf), seqlengths(seg)[as.character(seqnames)]))], seqlengths = sl)
+                                   end = ifelse(c(seqnames[-length(seqnames)]==seqnames[-1], FALSE), c(start[-1]-1, Inf), GenomeInfoDb::seqlengths(seg)[as.character(seqnames)]))], seqlengths = sl)
         seg = gr.val(seg, tmp.cov, 'reads') ## populate with mean coverage
         seg$reads = seg$reads/sum(as.numeric(seg$reads*width(seg))/sum(as.numeric(width(seg)))) ## normalize segs by weigthed mean (so these become a correction factor)
       }
@@ -861,7 +860,7 @@ coco = function(cov, base = max(10, 1e5 / max(width(cov))), fields = c("gc", "ma
     cat('Converting to GRanges\n')
   }
   gc()      
-  out = seg2gr(as.data.frame(cov.dt), seqlengths = seqlengths(cov)) 
+  out = seg2gr(as.data.frame(cov.dt), seqlengths = GenomeInfoDb::seqlengths(cov)) 
   if (verbose) {
     cat('Made GRanges\n')
   }
