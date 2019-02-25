@@ -382,7 +382,7 @@ bam.cov.exome = function(bam.file, chunksize = 1e6, min.mapq = 1, verbose = TRUE
     }
     chunk = chunk[which(V1 %in% GenomeInfoDb::seqlevels(exome))] ## Exome only has seqlevels 1-22,X,Y,M, remove any additional seqlevels from sample
     if (nrow(chunk) > 0) {
-      chunk.gr = GRanges(seqname = chunk$V1, ranges = IRanges(start = chunk$V2, width = chunk$V3))
+      chunk.gr = GRanges(seqnames = chunk$V1, ranges = IRanges(start = chunk$V2, width = chunk$V3))
       ## Robust to chunks that fall entirely between exons
       chunk.match = tryCatch(
         gr.match(chunk.gr,exome),
@@ -959,7 +959,7 @@ bam.cov.skel = function(bam.file, skeleton, chunksize = 1e5, min.mapq = 30, verb
     }
     chunk = chunk[which(V1 %in% levels(skel$chr))] ## Only evaluate seqlevels in the skeleton file
     if (nrow(chunk) > 0) {
-      chunk.gr = GRanges(seqname = chunk$V1, ranges = IRanges(start = chunk$V2, width = chunk$V3))
+      chunk.gr = GRanges(seqnames = chunk$V1, ranges = IRanges(start = chunk$V2, width = chunk$V3))
       ## Robust to chunks that fall entirely between exons
       chunk.match = tryCatch(
         gr.match(chunk.gr,dt2gr(skel)),
