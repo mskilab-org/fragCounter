@@ -20,7 +20,7 @@ You can install fragCounter from github with:
 devtools::install_github("mskilab/fragCounter")
 ```
 
-Example
+Example:
 -------
 
 This is a basic example which shows you how to solve a common problem:
