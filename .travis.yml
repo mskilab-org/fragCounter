@@ -18,6 +18,9 @@ bioc_packages:
 
 r_github_packages:
   - mskilab/gUtils
+  - mskilab/bamUtils
+  - mskilab/ffTrack
+  - mskilab/skidb
 
 before_install:
   - curl -OL https://raw.githubusercontent.com/craigcitro/r-travis/master/scripts/travis-tool.sh
