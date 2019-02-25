@@ -1,7 +1,8 @@
 #' @import GenomicRanges
 #' @import gUtils
 #' @import rtracklayer
-#' @importFrom data.table data.table fread rbindlist set setkey setkeyv setnames transpose
+#' @importFrom GenomeInfoDb seqlengths
+#' @importFrom data.table data.table fread rbindlist set setkey setkeyv setnames transpose as.data.table
 #' @importFrom stats cor loess predict quantile
 #' @importFrom skidb read_gencode
 #' @importFrom Biostrings alphabetFrequency
@@ -11,6 +12,10 @@
 #' @importFrom IRanges IRanges
 #' @importFrom DNAcopy CNA segment smooth.CNA
 #' @importFrom graphics plot lines
+#' @importFrom utils globalVariables
+
+
+globalVariables(c(".", ".N", ".SD", ":=", "V1", "V2", "V3", "bam", "bin", "black_list_pct", "blacklisted", "child", "chr", "count", "counts", "gc.wig", "index", "ix.start", "lev0", "lev1", "map.wig", "newcount", "numlevs", "pair", "parent", "reads", "reads.corrected", "rowid", "sortSeqlevels", "tmp"))
 
 
 #' @title Multi-scale coverage correction
@@ -236,7 +241,7 @@ multicoco = function(cov, numlevs = 1, base = max(10, 1e5 / max(width(cov))),
       grs[[i]]$reads = grs[[i]]$reads/correction[parentmap[[i]][grs[[i]]$lab, parent], cor]
     }
     if (WID*base^(i-1) > 1e5) { ## for very large intervals do not quantile trim, only remove NA
-      grs[[i]]$reads.corrected = FUN(as.data.frame(grs[[i]]), fields, doutlier = 0, seg = seg)
+
     }
     else {
       grs[[i]]$reads.corrected = FUN(as.data.frame(grs[[i]]), fields, seg = seg);

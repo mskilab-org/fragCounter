@@ -1,6 +1,8 @@
 context("unit testing fragCounter operations")
 
 library(fragCounter)
+library(data.table)
+library(GenomeInfoDb)
 
 ### Making small BAM
 # cd /gpfs/commons/groups/imielinski_lab/projects/PurityPloidy/Flow/Remix_Bams/HCC1143_1_5_4 1020
@@ -18,15 +20,21 @@ library(fragCounter)
 # bw = rtracklayer::import(bw.path, selection = tiles)
 # export(bw, "~/git/fragCounter/tests/testthat/chr21.bigWig", 'bigWig')
 
-bw = 'chr21.bigWig'
-twobit = 'hg19_chr21.2bit'
 
-example_bam = 'chr21.bam'
-example_bai = 'chr21.bai'
 
-cov21 = 'cov21.rds'
+bw = system.file('extdata', 'chr21.bigWig', package = 'fragCounter')
 
-cov = readRDS('samp.rds')
+twobit = system.file("extdata", 'hg19_chr21.2bit', package = 'fragCounter')
+
+example_bam = system.file("extdata", 'chr21.bam', package = 'fragCounter')
+
+example_bai = system.file("extdata", 'chr21.bai', package = 'fragCounter')
+
+cov21 = system.file("extdata", 'cov21.rds', package = 'fragCounter')
+
+cov = readRDS(system.file("extdata", 'samp.rds', package = 'fragCounter'))
+
+gcmapdir = gsub("cov21.rds","gcMAP21",cov21)
 
 
 #' twalradt Friday, May 18, 2018 01:37:49 PM Commented out to see if fragCounter will pass on travis
@@ -61,7 +69,7 @@ test_that("PrepareCov", {
 
 test_that("correctcov_stub", {
 
-    expect_equal(length(correctcov_stub(cov.wig = cov21, gc.rds.dir = "gcMAP21", map.rds.dir = "gcMAP21")), 234722)
+    expect_equal(length(correctcov_stub(cov.wig = cov21, gc.rds.dir = gcmapdir, map.rds.dir = gcmapdir)), 234722)
 
 })
 
