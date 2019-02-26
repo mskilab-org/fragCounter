@@ -32,6 +32,8 @@ example_bai = system.file("extdata", 'chr21.bai', package = 'fragCounter')
 
 cov21 = system.file("extdata", 'cov21.rds', package = 'fragCounter')
 
+cov21_exome = system.file("extdata", 'cov21_exome.rds', package = 'fragCounter')
+
 cov = readRDS(system.file("extdata", 'samp.rds', package = 'fragCounter'))
 
 gcmapdir = gsub("cov21.rds","gcMAP21",cov21)
@@ -56,23 +58,24 @@ gcmapdir = gsub("cov21.rds","gcMAP21",cov21)
 ## })
 
 
-test_that("PrepareCov", {
+## test_that("PrepareCov", {
 
-  expect_error(PrepareCov(bam = NULL, cov = NULL))
-  expect_equal(length(PrepareCov(example_bam)), 15509063)
-  expect_equal(max(width(PrepareCov(example_bam))), 200)
-  expect_equal(length(PrepareCov(example_bam, exome = TRUE)), 314827)
-#  expect_equal(length(PrepareCov(example_bam, paired = FALSE)), 15509063)
-#  expect_equal(max(width(PrepareCov(example_bam, paired = FALSE))), 200)
-
-})
-
-
-## test_that("correctcov_stub", {
-
-##     expect_equal(length(correctcov_stub(cov.wig = cov21, gc.rds.dir = gcmapdir, map.rds.dir = gcmapdir)), 234722)
+##   expect_error(PrepareCov(bam = NULL, cov = NULL))
+##   expect_equal(length(PrepareCov(example_bam)), 15509063)
+##   expect_equal(max(width(PrepareCov(example_bam))), 200)
+##   expect_equal(length(PrepareCov(example_bam, exome = TRUE)), 314827)
+## #  expect_equal(length(PrepareCov(example_bam, paired = FALSE)), 15509063)
+## #  expect_equal(max(width(PrepareCov(example_bam, paired = FALSE))), 200)
 
 ## })
+
+
+test_that("correctcov_stub", {
+
+  expect_equal(length(correctcov_stub(cov.wig = cov21, gc.rds.dir = gcmapdir, map.rds.dir = gcmapdir)), 234722)
+  expect_equal(length(correctcov_stub(cov.wig = cov21_exome, gc.rds.dir = gcmapdir, map.rds.dir = gcmapdir, exome = TRUE)), 3663)
+
+})
 
 
 ## test_that("multicoco", {
