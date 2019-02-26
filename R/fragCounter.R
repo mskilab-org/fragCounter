@@ -294,12 +294,12 @@ fragCounter = function(bam, skeleton = "/gpfs/commons/home/twalradt/fragcounter/
   out.rds = paste(outdir, '/cov.rds', sep = '')
   imageroot = gsub('.rds$', '', out.rds)
   if (exome == TRUE) {
-    cov = PrepareCov(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200, minmapq = 1, paired = TRUE, outdir, exome = TRUE)
+    cov = PrepareCov(bam, skeleton, cov = NULL, midpoint = midpoint, window = window, minmapq = minmapq, paired = paired, outdir, exome = exome)
     cov = correctcov_stub(cov, gc.rds.dir = gc.rds.dir, map.rds.dir = map.rds.dir, exome = TRUE)
     cov$reads.corrected = coco(cov, mc.cores = 1, fields = c('gc', 'map'), iterative = T, exome = TRUE, imageroot = imageroot)$reads.corrected
 
   } else {
-    cov = PrepareCov(bam, cov = NULL, midpoint = TRUE, window = 200, minmapq = 1, paired = TRUE, outdir)
+    cov = PrepareCov(bam, cov = NULL, midpoint = midpoint, window = window, minmapq = minmapq, paired = paired, outdir)
     cov = correctcov_stub(cov, gc.rds.dir = gc.rds.dir, map.rds.dir = map.rds.dir)
     cov$reads.corrected = multicoco(cov, numlevs = 1, base = max(10, 1e5/window), mc.cores = 1, fields = c('gc', 'map'), iterative = T, mono = T)$reads.corrected
   }
