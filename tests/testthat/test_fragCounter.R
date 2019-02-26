@@ -41,33 +41,33 @@ gcmapdir = gsub("cov21.rds","gcMAP21",cov21)
 
 #' twalradt Friday, May 18, 2018 01:37:49 PM Commented out to see if fragCounter will pass on travis
 
-## test_that("MAP.fun", {
+test_that("MAP.fun", {
 
-##   expect_equal(length(MAP.fun(twobitURL = twobit, bw.path = bw)), 240650)
-##   expect_equal(length(MAP.fun(twobitURL = twobit, bw.path = bw) %Q% (score > 0)), 171124)
+  expect_equal(length(MAP.fun(twobitURL = twobit, bw.path = bw)), 240650)
+  expect_equal(length(MAP.fun(twobitURL = twobit, bw.path = bw) %Q% (score > 0)), 171124)
 
-## })
-
-
-
-## test_that("GC.fun", {
-
-##   expect_equal(length(GC.fun(twobitURL = twobit)), 240650)
-##   expect_equal(length(GC.fun(twobitURL =twobit) %Q% (score > 0)), 175542)
-
-## })
+})
 
 
-## test_that("PrepareCov", {
 
-##   expect_error(PrepareCov(bam = NULL, cov = NULL))
-##   expect_equal(length(PrepareCov(example_bam)), 15509063)
-##   expect_equal(max(width(PrepareCov(example_bam))), 200)
-##   expect_equal(length(PrepareCov(example_bam, exome = TRUE)), 314827)
-## #  expect_equal(length(PrepareCov(example_bam, paired = FALSE)), 15509063)
-## #  expect_equal(max(width(PrepareCov(example_bam, paired = FALSE))), 200)
+test_that("GC.fun", {
 
-## })
+  expect_equal(length(GC.fun(twobitURL = twobit)), 240650)
+  expect_equal(length(GC.fun(twobitURL =twobit) %Q% (score > 0)), 175542)
+
+})
+
+
+test_that("PrepareCov", {
+
+  expect_error(PrepareCov(bam = NULL, cov = NULL))
+  expect_equal(length(PrepareCov(example_bam)), 15509063)
+  expect_equal(max(width(PrepareCov(example_bam))), 200)
+  expect_equal(length(PrepareCov(example_bam, exome = TRUE)), 314827)
+#  expect_equal(length(PrepareCov(example_bam, paired = FALSE)), 15509063)
+#  expect_equal(max(width(PrepareCov(example_bam, paired = FALSE))), 200)
+
+})
 
 
 test_that("correctcov_stub", {
@@ -78,16 +78,22 @@ test_that("correctcov_stub", {
 })
 
 
-## test_that("multicoco", {
+test_that("multicoco", {
 
-##     expect_equal(length(multicoco(cov)), 50001)
-##     expect_equal(sum(!is.na(multicoco(cov, mono = FALSE)$reads.corrected)), 48888)
-##     expect_equal(sum(!is.na(multicoco(cov, mono = TRUE)$reads.corrected)), 49571)
+    expect_equal(length(multicoco(cov)), 50001)
+    expect_equal(sum(!is.na(multicoco(cov, mono = FALSE)$reads.corrected)), 48888)
+    expect_equal(sum(!is.na(multicoco(cov, mono = TRUE)$reads.corrected)), 49571)
 
-## })
+})
 
 
 
+test_that("coco", {
+
+    expect_equal(length(coco(cov)), 50001)
+    expect_equal(sum(!is.na(coco(cov)$reads.corrected)), 49571)
+
+})
 
 
 

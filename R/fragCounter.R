@@ -915,7 +915,7 @@ alpha = function(col, alpha)
 #' @author Trent Walradt
 #' @export
 
-bam.cov.skel = function(bam.file, skeleton, chunksize = 1e5, min.mapq = 30, verbose = TRUE, max.tlen = 1e4, st.flag = "-f 0x02 -F 0x10", fragments = TRUE, do.gc = FALSE)
+bam.cov.skel = function(bam.file, skeleton, chunksize = 1e5, min.mapq = 1, verbose = TRUE, max.tlen = 1e4, st.flag = "-f 0x02 -F 0x10", fragments = TRUE, do.gc = FALSE)
 {
   ## check that the BAM is valid
     check_valid_bam = readChar(gzfile(bam.file, 'r'), 4)
