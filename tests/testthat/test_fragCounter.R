@@ -61,26 +61,27 @@ test_that("PrepareCov", {
   expect_error(PrepareCov(bam = NULL, cov = NULL))
   expect_equal(length(PrepareCov(example_bam)), 15509063)
   expect_equal(max(width(PrepareCov(example_bam))), 200)
+  expect_equal(length(PrepareCov(example_bam, exome = TRUE)), 314827)
 #  expect_equal(length(PrepareCov(example_bam, paired = FALSE)), 15509063)
 #  expect_equal(max(width(PrepareCov(example_bam, paired = FALSE))), 200)
 
 })
 
 
-test_that("correctcov_stub", {
+## test_that("correctcov_stub", {
 
-    expect_equal(length(correctcov_stub(cov.wig = cov21, gc.rds.dir = gcmapdir, map.rds.dir = gcmapdir)), 234722)
+##     expect_equal(length(correctcov_stub(cov.wig = cov21, gc.rds.dir = gcmapdir, map.rds.dir = gcmapdir)), 234722)
 
-})
+## })
 
 
-test_that("multicoco", {
+## test_that("multicoco", {
 
-    expect_equal(length(multicoco(cov)), 50001)
-    expect_equal(sum(!is.na(multicoco(cov, mono = FALSE)$reads.corrected)), 48888)
-    expect_equal(sum(!is.na(multicoco(cov, mono = TRUE)$reads.corrected)), 49571)
+##     expect_equal(length(multicoco(cov)), 50001)
+##     expect_equal(sum(!is.na(multicoco(cov, mono = FALSE)$reads.corrected)), 48888)
+##     expect_equal(sum(!is.na(multicoco(cov, mono = TRUE)$reads.corrected)), 49571)
 
-})
+## })
 
 
 

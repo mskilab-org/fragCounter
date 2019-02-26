@@ -1012,7 +1012,7 @@ bam.cov.skel = function(bam.file, skeleton, chunksize = 1e5, min.mapq = 30, verb
 #' @author Trent Walradt
 #' @export
 
-make.blacklist = function(pairs, cutoff = 0.9)
+make.blacklist = function(pairs, cutoff = 0.9, mc.cores = mc.cores)
 {
 
   pairs.bl = readRDS(pairs)
@@ -1026,7 +1026,7 @@ make.blacklist = function(pairs, cutoff = 0.9)
       print(dim(this.cov))
     } else {this.cov = data.table(NA)}
     return(this.cov)}
-  , mc.cores = 15)
+  , mc.cores = mc.cores)
 
   bl.bind = rbindlist(bl, fill = T)
   bl.bind.t = transpose(bl.bind)
