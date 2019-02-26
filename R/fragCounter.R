@@ -290,16 +290,16 @@ multicoco = function(cov, numlevs = 1, base = max(10, 1e5 / max(width(cov))),
 #' @param exome boolean If TRUE, perform correction using exons as bins instead of fixed size
 #' @export
 
-fragCounter = function(bam, skeleton = "/gpfs/commons/home/twalradt/fragcounter/sample_blacklist.rds", cov = NULL, midpoint = FALSE, window = 200, gc.rds.dir, map.rds.dir, minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE) {
+fragCounter = function(bam, skeleton = "/gpfs/commons/home/twalradt/fragcounter/sample_blacklist.rds", cov = NULL, midpoint = TRUE, window = 200, gc.rds.dir, map.rds.dir, minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE) {
   out.rds = paste(outdir, '/cov.rds', sep = '')
   imageroot = gsub('.rds$', '', out.rds)
   if (exome == TRUE) {
-    cov = PrepareCov(bam, skeleton, cov = NULL, midpoint = FALSE, window = 200, minmapq = 1, paired = TRUE, outdir, exome = TRUE)
+    cov = PrepareCov(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200, minmapq = 1, paired = TRUE, outdir, exome = TRUE)
     cov = correctcov_stub(cov, gc.rds.dir = gc.rds.dir, map.rds.dir = map.rds.dir, exome = TRUE)
     cov$reads.corrected = coco(cov, mc.cores = 1, fields = c('gc', 'map'), iterative = T, exome = TRUE, imageroot = imageroot)$reads.corrected
 
   } else {
-    cov = PrepareCov(bam, cov = NULL, midpoint = FALSE, window = 200, minmapq = 1, paired = TRUE, outdir)
+    cov = PrepareCov(bam, cov = NULL, midpoint = TRUE, window = 200, minmapq = 1, paired = TRUE, outdir)
     cov = correctcov_stub(cov, gc.rds.dir = gc.rds.dir, map.rds.dir = map.rds.dir)
     cov$reads.corrected = multicoco(cov, numlevs = 1, base = max(10, 1e5/window), mc.cores = 1, fields = c('gc', 'map'), iterative = T, mono = T)$reads.corrected
   }
@@ -528,7 +528,7 @@ GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win 
 #' @author Trent Walradt
 #' @export
 
-PrepareCov = function(bam, skeleton, cov = NULL, midpoint = FALSE, window = 200, minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE) {
+PrepareCov = function(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200, minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE) {
   if (exome == TRUE){
     cov = bam.cov.exome(bam, chunksize = 1e6, min.mapq = 1)
 #    cov = bam.cov.skel(bam, skeleton, chunksize = 1e6, min.mapq = 1) #' twalradt Tuesday, Nov 27, 2018 07:22:14 PM Use this if you want to do implement the blacklist at this stage vs. later
@@ -536,7 +536,7 @@ PrepareCov = function(bam, skeleton, cov = NULL, midpoint = FALSE, window = 200,
     if (is.null(bam)) {
       bam = ''
     }
-    midpoint = grepl("(T)|(TRUE)", midpoint, ignore.case = T)
+
     if (file.exists(bam)) { # & is.null(cov))
       if (!midpoint) {
         cat("Running without midpoint!!!\n")
@@ -546,12 +546,12 @@ PrepareCov = function(bam, skeleton, cov = NULL, midpoint = FALSE, window = 200,
         paired = TRUE
       }
       if (paired) {
-        cov = bamUtils::bam.cov.tile(bam, window = window, chunksize = 1e6, midpoint = FALSE, min.mapq = 1)  ## counts midpoints of fragments
+        cov = bamUtils::bam.cov.tile(bam, window = window, chunksize = 1e6, midpoint = TRUE, min.mapq = 1)  ## counts midpoints of fragments
       }
       else {
         sl = GenomeInfoDb::seqlengths(BamFile(bam))
         tiles = gr.tile(sl, window)
-        cov = bamUtils::bam.cov.gr(bam, intervals = tiles, isPaired = NA, isProperPair = NA, hasUnmappedMate = NA, chunksize = 1e7)  ## counts midpoints of fragments    # Can we increase chunksize?
+        cov = bamUtils::bam.cov.gr(bam, intervals = tiles, isPaired = NA, isProperPair = NA, hasUnmappedMate = NA, chunksize = 1e5)  ## counts midpoints of fragments    # Can we increase chunksize?
         cov$count = cov$records/width(cov)
       }
     }
