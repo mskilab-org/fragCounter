@@ -4,7 +4,7 @@
 \alias{PrepareCov}
 \title{PrepareCov}
 \usage{
-PrepareCov(bam, skeleton, cov = NULL, midpoint = FALSE, window = 200,
+PrepareCov(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200,
   minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE)
 }
 \arguments{

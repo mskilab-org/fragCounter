@@ -6,9 +6,8 @@
 \usage{
 fragCounter(bam,
   skeleton = "/gpfs/commons/home/twalradt/fragcounter/sample_blacklist.rds",
-  cov = NULL, midpoint = FALSE, window = 200, gc.rds.dir,
-  map.rds.dir, minmapq = 1, paired = TRUE, outdir = NULL,
-  exome = FALSE)
+  cov = NULL, midpoint = TRUE, window = 200, gc.rds.dir, map.rds.dir,
+  minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE)
 }
 \arguments{
 \item{bam}{string path to .bam file}
