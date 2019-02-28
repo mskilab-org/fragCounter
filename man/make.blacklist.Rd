@@ -4,7 +4,7 @@
 \alias{make.blacklist}
 \title{Make a list of regions of the genome in which there is coverage in the normal samples}
 \usage{
-make.blacklist(pairs, cutoff = 0.9)
+make.blacklist(pairs, cutoff = 0.9, mc.cores = mc.cores)
 }
 \arguments{
 \item{pairs}{string Input data.table with columns 'pair' and 'bam' corresponding to the sample name and bath to normal bam}

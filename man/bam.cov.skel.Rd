@@ -4,7 +4,7 @@
 \alias{bam.cov.skel}
 \title{Get coverage as GRanges from BAM using exons as tiles}
 \usage{
-bam.cov.skel(bam.file, skeleton, chunksize = 1e+05, min.mapq = 30,
+bam.cov.skel(bam.file, skeleton, chunksize = 1e+05, min.mapq = 1,
   verbose = TRUE, max.tlen = 10000, st.flag = "-f 0x02 -F 0x10",
   fragments = TRUE, do.gc = FALSE)
 }

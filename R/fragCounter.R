@@ -288,13 +288,14 @@ multicoco = function(cov, numlevs = 1, base = max(10, 1e5 / max(width(cov))),
 #' @param gc.rds.dir string for tiles of width W, will look here for a file named gc{W}.rds in this directory
 #' @param map.rds.dir string for tiles of width W will look here for a file named map{W}.rds in this directory
 #' @param exome boolean If TRUE, perform correction using exons as bins instead of fixed size
+#' @param use.skel boolean flag If false then default exome skeleton from gencode is used, if TRUE, user defined skeleton is used
 #' @export
 
-fragCounter = function(bam, skeleton = "/gpfs/commons/home/twalradt/fragcounter/sample_blacklist.rds", cov = NULL, midpoint = TRUE, window = 200, gc.rds.dir, map.rds.dir, minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE) {
+fragCounter = function(bam, skeleton = "/gpfs/commons/home/twalradt/fragcounter/sample_blacklist.rds", cov = NULL, midpoint = TRUE, window = 200, gc.rds.dir, map.rds.dir, minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE, use.skel = FALSE) {
   out.rds = paste(outdir, '/cov.rds', sep = '')
   imageroot = gsub('.rds$', '', out.rds)
   if (exome == TRUE) {
-    cov = PrepareCov(bam, skeleton, cov = NULL, midpoint = midpoint, window = window, minmapq = minmapq, paired = paired, outdir, exome = exome)
+    cov = PrepareCov(bam, skeleton, cov = NULL, midpoint = midpoint, window = window, minmapq = minmapq, paired = paired, outdir, exome = exome, use.skel = use.skel)
     cov = correctcov_stub(cov, gc.rds.dir = gc.rds.dir, map.rds.dir = map.rds.dir, exome = TRUE)
     cov$reads.corrected = coco(cov, mc.cores = 1, fields = c('gc', 'map'), iterative = T, exome = TRUE, imageroot = imageroot)$reads.corrected
 
@@ -525,13 +526,14 @@ GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win 
 #' @param paired wether or not paired
 #' @param outdir Directory to dump output into
 #' @param exome boolean If TRUE, use bam.cov.exome to calculate coverage
+#' @param use.skel boolean flag If false then default exome skeleton from gencode is used, if TRUE, user defined skeleton is used
 #' @author Trent Walradt
 #' @export
 
-PrepareCov = function(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200, minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE) {
+PrepareCov = function(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200, minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE, use.skel) {
   if (exome == TRUE){
-    cov = bam.cov.exome(bam, chunksize = 1e6, min.mapq = 1)
-#    cov = bam.cov.skel(bam, skeleton, chunksize = 1e6, min.mapq = 1) #' twalradt Tuesday, Nov 27, 2018 07:22:14 PM Use this if you want to do implement the blacklist at this stage vs. later
+#    cov = bam.cov.exome(bam, chunksize = 1e6, min.mapq = 1)
+    cov = bam.cov.skel(bam, skeleton, chunksize = 1e6, min.mapq = 1, use.skel)
   } else {
     if (is.null(bam)) {
       bam = ''
@@ -910,12 +912,13 @@ alpha = function(col, alpha)
 #' @param st.flag string Samtools flag to filter reads on (default = '-f 0x02 -F 0x10')
 #' @param fragments boolean flag (default = FALSE) detremining whether to compute fragment (i.e. proper pair footprint aka insert) density or read density
 #' @param do.gc boolean Flag to execute garbage collection via 'gc()' (default = FALSE)
+#' @param use.skel boolean flag If false then default exome skeleton from gencode is used, if TRUE, user defined skeleton is used
 #' @return GRanges of user defined tiles across seqlengths of bam.file with meta data field $counts specifying fragment counts centered (default = TRUE)
 #' in the given bin.
 #' @author Trent Walradt
 #' @export
 
-bam.cov.skel = function(bam.file, skeleton, chunksize = 1e5, min.mapq = 1, verbose = TRUE, max.tlen = 1e4, st.flag = "-f 0x02 -F 0x10", fragments = TRUE, do.gc = FALSE)
+bam.cov.skel = function(bam.file, skeleton, chunksize = 1e5, min.mapq = 1, verbose = TRUE, max.tlen = 1e4, st.flag = "-f 0x02 -F 0x10", fragments = TRUE, do.gc = FALSE, use.skel)
 {
   ## check that the BAM is valid
     check_valid_bam = readChar(gzfile(bam.file, 'r'), 4)
@@ -923,16 +926,21 @@ bam.cov.skel = function(bam.file, skeleton, chunksize = 1e5, min.mapq = 1, verbo
         stop("Cannot open BAM. A valid BAM for 'bam_file' must be provided.")
     }
   cmd = 'samtools view %s %s -q %s | cut -f "3,4,9"' ## cmd line to grab the rname, pos, and tlen columns
-  # exome = reduce(skidb::read_gencode('exon')) ## Read in exome GRanges to get exons to used as your windows instead of fixed width
+  
   # numwin = length(exome)
 
-  skel = readRDS(skeleton)
+  if (use.skel == FALSE){
+    skel = reduce(skidb::read_gencode('exon'))
+    counts = gr2dt(skel)
+  } else {
+    skel = readRDS(skeleton)
+    counts = skel
+  }
+
   numwin = nrow(skel)
   cat('Calling', sprintf(cmd, st.flag, bam.file, min.mapq), '\n')
   p = pipe(sprintf(cmd, st.flag, bam.file, min.mapq), open = 'r')
   i = 0
-
-  counts = skel
 
   # counts = gr2dt(exome)
   counts[, ':=' (strand = NULL, width = NULL)]
@@ -957,14 +965,24 @@ bam.cov.skel = function(bam.file, skeleton, chunksize = 1e5, min.mapq = 1, verbo
     if (grepl("chr",chunk$V1[1])) { # Robust to samples that start with or without 'chr' before chromosomes
       chunk[, V1 := gsub("chr", "", V1)]
     }
-    chunk = chunk[which(V1 %in% levels(skel$chr))] ## Only evaluate seqlevels in the skeleton file
+    if (use.skel == FALSE){ chunk = chunk[which(V1 %in% GenomeInfoDb::seqlevels(skel))]
+    } else { chunk = chunk[which(V1 %in% levels(skel$chr))]
+    }
     if (nrow(chunk) > 0) {
       chunk.gr = GRanges(seqnames = chunk$V1, ranges = IRanges(start = chunk$V2, width = chunk$V3))
       ## Robust to chunks that fall entirely between exons
-      chunk.match = tryCatch(
-        gr.match(chunk.gr,dt2gr(skel)),
-        error = function(e) e
-      )
+      if (use.skel == TRUE) {
+        chunk.match = tryCatch(
+          gr.match(chunk.gr,dt2gr(skel)),
+          error = function(e) e
+        )
+      } else {
+        chunk.match = tryCatch(
+          gr.match(chunk.gr,skel),
+          error = function(e) e
+        )
+      }
+
       if(!inherits(chunk.match, "error")){
         chunk[, bin := chunk.match]
         tabs = chunk[, list(newcount = length(V1)), by = list(chr = as.character(V1), bin)] ## tabulate reads to bins data.table style
@@ -991,11 +1009,16 @@ bam.cov.skel = function(bam.file, skeleton, chunksize = 1e5, min.mapq = 1, verbo
   x = data.table(chr = c(1:22, "X", "Y", "M"), order = 1:25)
   counts[, order := x$order[match(chr, x$chr)]]
   counts = counts[order(order)][, order := NULL]
-  skel$counts = counts$count
-  skel = dt2gr(skel)
-    if (verbose){
-      cat("Finished computing coverage, and making GRanges\n")
-    }
+
+  if (use.skel == TRUE){
+    skel$counts = counts$count
+    skel = dt2gr(skel)
+  } else {
+    skel$counts = counts$count
+  }  
+  if (verbose){
+    cat("Finished computing coverage, and making GRanges\n")
+  }
   close(p)
   return(skel)
 }
@@ -1019,7 +1042,7 @@ make.blacklist = function(pairs, cutoff = 0.9, mc.cores = mc.cores)
   setkeyv(pairs.bl, "pair")
 
   bl = mclapply(pairs.bl[, pair], function(nm){
-    this.cov = bam.cov.exome(pairs.bl[nm, bam], chunksize = 1e6)
+    this.cov = bam.cov.skel(pairs.bl[nm, bam], chunksize = 1e6)
     if (!is.null(this.cov)){
       this.cov = transpose(gr2dt(tmp)[,.(counts)])
       message(nm)
