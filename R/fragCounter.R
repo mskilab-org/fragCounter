@@ -291,11 +291,11 @@ multicoco = function(cov, numlevs = 1, base = max(10, 1e5 / max(width(cov))),
 #' @param use.skel boolean flag If false then default exome skeleton from gencode is used, if TRUE, user defined skeleton is used
 #' @export
 
-fragCounter = function(bam, skeleton = "/gpfs/commons/home/twalradt/fragcounter/sample_blacklist.rds", cov = NULL, midpoint = TRUE, window = 200, gc.rds.dir, map.rds.dir, minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE, use.skel = FALSE) {
+fragCounter = function(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200, gc.rds.dir, map.rds.dir, minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE, use.skel = FALSE) {
   out.rds = paste(outdir, '/cov.rds', sep = '')
   imageroot = gsub('.rds$', '', out.rds)
   if (exome == TRUE) {
-    cov = PrepareCov(bam, skeleton, cov = NULL, midpoint = midpoint, window = window, minmapq = minmapq, paired = paired, outdir, exome = exome, use.skel = use.skel)
+    cov = PrepareCov(bam, skeleton = skeleton, cov = NULL, midpoint = midpoint, window = window, minmapq = minmapq, paired = paired, outdir, exome = exome, use.skel = use.skel)
     cov = correctcov_stub(cov, gc.rds.dir = gc.rds.dir, map.rds.dir = map.rds.dir, exome = TRUE)
     cov$reads.corrected = coco(cov, mc.cores = 1, fields = c('gc', 'map'), iterative = T, exome = TRUE, imageroot = imageroot)$reads.corrected
 
@@ -530,7 +530,7 @@ GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win 
 #' @author Trent Walradt
 #' @export
 
-PrepareCov = function(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200, minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE, use.skel) {
+PrepareCov = function(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200, minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE, use.skel = FALSE) {
   if (exome == TRUE){
 #    cov = bam.cov.exome(bam, chunksize = 1e6, min.mapq = 1)
     cov = bam.cov.skel(bam, skeleton, chunksize = 1e6, min.mapq = 1, use.skel)
