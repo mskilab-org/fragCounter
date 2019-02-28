@@ -533,6 +533,7 @@ GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win 
 PrepareCov = function(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200, minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE, use.skel = FALSE) {
   if (exome == TRUE){
 #    cov = bam.cov.exome(bam, chunksize = 1e6, min.mapq = 1)
+    cat('Running bam.cov.skel')
     cov = bam.cov.skel(bam, skeleton, chunksize = 1e6, min.mapq = 1, use.skel)
   } else {
     if (is.null(bam)) {
