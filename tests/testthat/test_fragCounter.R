@@ -38,6 +38,7 @@ cov = readRDS(system.file("extdata", 'samp.rds', package = 'fragCounter'))
 
 gcmapdir = gsub("cov21.rds","gcMAP21",cov21)
 
+skeleton = system.file("extdata", "sample_blacklist.rds", package = "fragCounter")
 
 #' twalradt Friday, May 18, 2018 01:37:49 PM Commented out to see if fragCounter will pass on travis
 
@@ -63,7 +64,7 @@ test_that("PrepareCov", {
   expect_error(PrepareCov(bam = NULL, cov = NULL))
   expect_equal(length(PrepareCov(example_bam)), 15509063)
   expect_equal(max(width(PrepareCov(example_bam))), 200)
-  expect_equal(length(PrepareCov(example_bam, exome = TRUE)), 314827)
+  expect_equal(length(PrepareCov(example_bam, exome = TRUE, skeleton = skeleton, use.skel = TRUE)), 314827)
 #  expect_equal(length(PrepareCov(example_bam, paired = FALSE)), 15509063)
 #  expect_equal(max(width(PrepareCov(example_bam, paired = FALSE))), 200)
 
