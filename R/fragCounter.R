@@ -437,7 +437,7 @@ bam.cov.exome = function(bam.file, chunksize = 1e6, min.mapq = 1, verbose = TRUE
 #' @author Trent Walradt
 #' @export
 
-MAP.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', bw.path = '~/DB/UCSC/wgEncodeCrgMapabilityAlign100mer.bigWig', twobit.win = 1e3, mc.cores = 10, exome = FALSE) {
+MAP.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', bw.path = '~/DB/UCSC/wgEncodeCrgMapabilityAlign100mer.bigWig', twobit.win = 1e3, mc.cores = 1, exome = FALSE) {
   if (exome == TRUE){
     tiles = reduce(read_gencode('exon'))
     GenomeInfoDb::seqlevelsStyle(tiles) <- "UCSC" #Formatting chromosome notation
@@ -480,7 +480,7 @@ MAP.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', bw.path = 
 #' @author Trent Walradt
 #' @export
 
-GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win = 1e3, mc.cores = 15, exome = FALSE) {
+GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win = 1e3, mc.cores = 1, exome = FALSE) {
   if (exome == TRUE){
     tiles = reduce(read_gencode('exon'))
     GenomeInfoDb::seqlevelsStyle(tiles) <- "UCSC"
@@ -533,9 +533,7 @@ GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win 
 PrepareCov = function(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200, minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE, use.skel = FALSE) {
   if (exome == TRUE){
 #    cov = bam.cov.exome(bam, chunksize = 1e6, min.mapq = 1)
-    cat('Running bam.cov.skel')
     cov = bam.cov.skel(bam, skeleton, chunksize = 1e6, min.mapq = 1, use.skel = use.skel)
-    print(cov$counts[91])
   } else {
     if (is.null(bam)) {
       bam = ''
