@@ -5,7 +5,8 @@
 \title{PrepareCov}
 \usage{
 PrepareCov(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200,
-  minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE)
+  minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE,
+  use.skel = FALSE)
 }
 \arguments{
 \item{bam}{path to .bam file}
@@ -25,6 +26,8 @@ PrepareCov(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200,
 \item{outdir}{Directory to dump output into}
 
 \item{exome}{boolean If TRUE, use bam.cov.exome to calculate coverage}
+
+\item{use.skel}{boolean flag If false then default exome skeleton from gencode is used, if TRUE, user defined skeleton is used}
 }
 \description{
 Load BAM or coverage file and prepare for use in correctcov_stub

@@ -4,10 +4,9 @@
 \alias{fragCounter}
 \title{fragCounter}
 \usage{
-fragCounter(bam,
-  skeleton = "/gpfs/commons/home/twalradt/fragcounter/sample_blacklist.rds",
-  cov = NULL, midpoint = TRUE, window = 200, gc.rds.dir, map.rds.dir,
-  minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE)
+fragCounter(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200,
+  gc.rds.dir, map.rds.dir, minmapq = 1, paired = TRUE, outdir = NULL,
+  exome = FALSE, use.skel = FALSE)
 }
 \arguments{
 \item{bam}{string path to .bam file}
@@ -31,6 +30,8 @@ fragCounter(bam,
 \item{outdir}{string Directory to dump output into}
 
 \item{exome}{boolean If TRUE, perform correction using exons as bins instead of fixed size}
+
+\item{use.skel}{boolean flag If false then default exome skeleton from gencode is used, if TRUE, user defined skeleton is used}
 }
 \description{
 Runs entire fragCounter pipeline

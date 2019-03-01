@@ -6,7 +6,7 @@
 \usage{
 bam.cov.skel(bam.file, skeleton, chunksize = 1e+05, min.mapq = 1,
   verbose = TRUE, max.tlen = 10000, st.flag = "-f 0x02 -F 0x10",
-  fragments = TRUE, do.gc = FALSE)
+  fragments = TRUE, do.gc = FALSE, use.skel = FALSE)
 }
 \arguments{
 \item{bam.file}{string Input BAM file}
@@ -26,6 +26,8 @@ bam.cov.skel(bam.file, skeleton, chunksize = 1e+05, min.mapq = 1,
 \item{fragments}{boolean flag (default = FALSE) detremining whether to compute fragment (i.e. proper pair footprint aka insert) density or read density}
 
 \item{do.gc}{boolean Flag to execute garbage collection via 'gc()' (default = FALSE)}
+
+\item{use.skel}{boolean flag If false then default exome skeleton from gencode is used, if TRUE, user defined skeleton is used}
 }
 \value{
 GRanges of user defined tiles across seqlengths of bam.file with meta data field $counts specifying fragment counts centered (default = TRUE)

@@ -325,103 +325,103 @@ fragCounter = function(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200,
 }
 
 
-#' @name bam.cov.exome
-#' @title Get coverage as GRanges from BAM using exons as tiles
-#' @description
-#' Quick way to get tiled coverage via piping to samtools (e.g. ~10 CPU-hours for 100bp tiles, 5e8 read pairs)
-#'
-#' Gets coverage for exons, pulling "chunksize" records at a time and incrementing bin
-#'
-#' @param bam.file string Input BAM file
-#' @param chunksize integer Size of window (default = 1e5)
-#' @param min.mapq integer Minimim map quality reads to consider for counts (default = 30)
-#' @param verbose boolean Flag to increase vebosity (default = TRUE)
-#' @param max.tlen integer Maximum paired-read insert size to consider (default = 1e4)
-#' @param st.flag string Samtools flag to filter reads on (default = '-f 0x02 -F 0x10')
-#' @param fragments boolean flag (default = FALSE) detremining whether to compute fragment (i.e. proper pair footprint aka insert) density or read density
-#' @param do.gc boolean Flag to execute garbage collection via 'gc()' (default = FALSE)
-#' @return GRanges of exon tiles across seqlengths of bam.file with meta data field $counts specifying fragment counts centered (default = TRUE)
-#' in the given bin.
-#' @author Trent Walradt
-#' @export
+## #' @name bam.cov.exome
+## #' @title Get coverage as GRanges from BAM using exons as tiles
+## #' @description
+## #' Quick way to get tiled coverage via piping to samtools (e.g. ~10 CPU-hours for 100bp tiles, 5e8 read pairs)
+## #'
+## #' Gets coverage for exons, pulling "chunksize" records at a time and incrementing bin
+## #'
+## #' @param bam.file string Input BAM file
+## #' @param chunksize integer Size of window (default = 1e5)
+## #' @param min.mapq integer Minimim map quality reads to consider for counts (default = 30)
+## #' @param verbose boolean Flag to increase vebosity (default = TRUE)
+## #' @param max.tlen integer Maximum paired-read insert size to consider (default = 1e4)
+## #' @param st.flag string Samtools flag to filter reads on (default = '-f 0x02 -F 0x10')
+## #' @param fragments boolean flag (default = FALSE) detremining whether to compute fragment (i.e. proper pair footprint aka insert) density or read density
+## #' @param do.gc boolean Flag to execute garbage collection via 'gc()' (default = FALSE)
+## #' @return GRanges of exon tiles across seqlengths of bam.file with meta data field $counts specifying fragment counts centered (default = TRUE)
+## #' in the given bin.
+## #' @author Trent Walradt
+## #' @export
 
-bam.cov.exome = function(bam.file, chunksize = 1e6, min.mapq = 1, verbose = TRUE, max.tlen = 1e4, st.flag = "-f 0x02 -F 0x10", fragments = TRUE, do.gc = FALSE)
-{
-  ## check that the BAM is valid
-    check_valid_bam = readChar(gzfile(bam.file, 'r'), 4)
-    if (!identical(check_valid_bam, 'BAM\1')){
-        stop("Cannot open BAM. A valid BAM for 'bam_file' must be provided.")
-    }
-  cmd = 'samtools view %s %s -q %s | cut -f "3,4,9"' ## cmd line to grab the rname, pos, and tlen columns
-  exome = reduce(skidb::read_gencode('exon')) ## Read in exome GRanges to get exons to used as your windows instead of fixed width
-  numwin = length(exome)
-  cat('Calling', sprintf(cmd, st.flag, bam.file, min.mapq), '\n')
-  p = pipe(sprintf(cmd, st.flag, bam.file, min.mapq), open = 'r')
-  i = 0
-  counts = gr2dt(exome)
-  counts[, ':=' (strand = NULL, width = NULL)]
-  setnames(counts, "seqnames", "chr")
-  counts = counts[, bin := 1:length(start)] #, by = chr]
-  counts[, count := 0]
-  counts[, rowid := 1:length(count)]
-  setkeyv(counts, c("chr", "bin")) ## now we can quickly populate the right entries
-  totreads = 0
-  st = Sys.time()
-  if (verbose){
-    cat('Starting fragment count on', bam.file, 'and min mapQ', min.mapq, 'and   insert size limit', max.tlen, '\n')
-  }
-  while (length(chunk <- readLines(p, n = chunksize)) > 0)
-  {
-#  browser(expr = i == 2)
-#  browser()
-    i = i+1
-    chunk = fread(paste(chunk, collapse = "\n"), header = F)[abs(V3) <= max.tlen, ]
-    chunk[, V2 := ifelse(V3 < 0, V2 + V3, V2)] # Convert negative reads to positive
-    chunk[, V3 := abs(V3)]
-    if (grepl("chr",chunk$V1[1])) { # Robust to samples that start with or without 'chr' before chromosomes
-      chunk[, V1 := gsub("chr", "", V1)]
-    }
-    chunk = chunk[which(V1 %in% GenomeInfoDb::seqlevels(exome))] ## Exome only has seqlevels 1-22,X,Y,M, remove any additional seqlevels from sample
-    if (nrow(chunk) > 0) {
-      chunk.gr = GRanges(seqnames = chunk$V1, ranges = IRanges(start = chunk$V2, width = chunk$V3))
-      ## Robust to chunks that fall entirely between exons
-      chunk.match = tryCatch(
-        gr.match(chunk.gr,exome),
-        error = function(e) e
-      )
-      if(!inherits(chunk.match, "error")){
-        chunk[, bin := chunk.match]
-        tabs = chunk[, list(newcount = length(V1)), by = list(chr = as.character(V1), bin)] ## tabulate reads to bins data.table style
-        counts[tabs, count := count + newcount] ## populate latest bins in master data.table
-      }
-    }
-    ## should be no memory issues here since we preallocate the data table .. but they still appear
-    if (do.gc){
-        print('GC!!')
-        print(gc())
-    }
-    ## report timing
-    if (verbose){
-      cat('bam.cov.tile.st ', bam.file, 'chunk', i, 'num fragments processed', i*chunksize, '\n')
-      timeelapsed = as.numeric(difftime(Sys.time(), st, units = 'hours'))
-      meancov = i * chunksize / counts[tabs[nrow(tabs),], ]$rowid  ## estimate comes from total reads and "latest" bin filled
-      totreads = meancov * numwin
-      tottime = totreads*timeelapsed/(i*chunksize)
-      rate = i*chunksize / timeelapsed / 3600
-      cat('mean cov:', round(meancov,1), 'per bin, estimated tot fragments:', round(totreads/1e6,2), 'million fragments, processing', rate,
-          'fragments/second\ntime elapsed:', round(timeelapsed,2), 'hours, estimated time remaining:', round(tottime - timeelapsed,2), 'hours', ', estimated total time', round(tottime,2), 'hours\n')
-    }
-  }
-  x = data.table(chr = c(1:22, "X", "Y", "M"), order = 1:25)
-  counts[, order := x$order[match(chr, x$chr)]]
-  counts = counts[order(order)][, order := NULL]
-  exome$counts = counts$count
-    if (verbose){
-      cat("Finished computing coverage, and making GRanges\n")
-    }
-  close(p)
-  return(exome)
-}
+## bam.cov.exome = function(bam.file, chunksize = 1e6, min.mapq = 1, verbose = TRUE, max.tlen = 1e4, st.flag = "-f 0x02 -F 0x10", fragments = TRUE, do.gc = FALSE)
+## {
+##   ## check that the BAM is valid
+##     check_valid_bam = readChar(gzfile(bam.file, 'r'), 4)
+##     if (!identical(check_valid_bam, 'BAM\1')){
+##         stop("Cannot open BAM. A valid BAM for 'bam_file' must be provided.")
+##     }
+##   cmd = 'samtools view %s %s -q %s | cut -f "3,4,9"' ## cmd line to grab the rname, pos, and tlen columns
+##   exome = reduce(skidb::read_gencode('exon')) ## Read in exome GRanges to get exons to used as your windows instead of fixed width
+##   numwin = length(exome)
+##   cat('Calling', sprintf(cmd, st.flag, bam.file, min.mapq), '\n')
+##   p = pipe(sprintf(cmd, st.flag, bam.file, min.mapq), open = 'r')
+##   i = 0
+##   counts = gr2dt(exome)
+##   counts[, ':=' (strand = NULL, width = NULL)]
+##   setnames(counts, "seqnames", "chr")
+##   counts = counts[, bin := 1:length(start)] #, by = chr]
+##   counts[, count := 0]
+##   counts[, rowid := 1:length(count)]
+##   setkeyv(counts, c("chr", "bin")) ## now we can quickly populate the right entries
+##   totreads = 0
+##   st = Sys.time()
+##   if (verbose){
+##     cat('Starting fragment count on', bam.file, 'and min mapQ', min.mapq, 'and   insert size limit', max.tlen, '\n')
+##   }
+##   while (length(chunk <- readLines(p, n = chunksize)) > 0)
+##   {
+## #  browser(expr = i == 2)
+## #  browser()
+##     i = i+1
+##     chunk = fread(paste(chunk, collapse = "\n"), header = F)[abs(V3) <= max.tlen, ]
+##     chunk[, V2 := ifelse(V3 < 0, V2 + V3, V2)] # Convert negative reads to positive
+##     chunk[, V3 := abs(V3)]
+##     if (grepl("chr",chunk$V1[1])) { # Robust to samples that start with or without 'chr' before chromosomes
+##       chunk[, V1 := gsub("chr", "", V1)]
+##     }
+##     chunk = chunk[which(V1 %in% GenomeInfoDb::seqlevels(exome))] ## Exome only has seqlevels 1-22,X,Y,M, remove any additional seqlevels from sample
+##     if (nrow(chunk) > 0) {
+##       chunk.gr = GRanges(seqnames = chunk$V1, ranges = IRanges(start = chunk$V2, width = chunk$V3))
+##       ## Robust to chunks that fall entirely between exons
+##       chunk.match = tryCatch(
+##         gr.match(chunk.gr,exome),
+##         error = function(e) e
+##       )
+##       if(!inherits(chunk.match, "error")){
+##         chunk[, bin := chunk.match]
+##         tabs = chunk[, list(newcount = length(V1)), by = list(chr = as.character(V1), bin)] ## tabulate reads to bins data.table style
+##         counts[tabs, count := count + newcount] ## populate latest bins in master data.table
+##       }
+##     }
+##     ## should be no memory issues here since we preallocate the data table .. but they still appear
+##     if (do.gc){
+##         print('GC!!')
+##         print(gc())
+##     }
+##     ## report timing
+##     if (verbose){
+##       cat('bam.cov.tile.st ', bam.file, 'chunk', i, 'num fragments processed', i*chunksize, '\n')
+##       timeelapsed = as.numeric(difftime(Sys.time(), st, units = 'hours'))
+##       meancov = i * chunksize / counts[tabs[nrow(tabs),], ]$rowid  ## estimate comes from total reads and "latest" bin filled
+##       totreads = meancov * numwin
+##       tottime = totreads*timeelapsed/(i*chunksize)
+##       rate = i*chunksize / timeelapsed / 3600
+##       cat('mean cov:', round(meancov,1), 'per bin, estimated tot fragments:', round(totreads/1e6,2), 'million fragments, processing', rate,
+##           'fragments/second\ntime elapsed:', round(timeelapsed,2), 'hours, estimated time remaining:', round(tottime - timeelapsed,2), 'hours', ', estimated total time', round(tottime,2), 'hours\n')
+##     }
+##   }
+##   x = data.table(chr = c(1:22, "X", "Y", "M"), order = 1:25)
+##   counts[, order := x$order[match(chr, x$chr)]]
+##   counts = counts[order(order)][, order := NULL]
+##   exome$counts = counts$count
+##     if (verbose){
+##       cat("Finished computing coverage, and making GRanges\n")
+##     }
+##   close(p)
+##   return(exome)
+## }
 
 
 #' @title Mappability calculator
@@ -1031,6 +1031,7 @@ bam.cov.skel = function(bam.file, skeleton, chunksize = 1e5, min.mapq = 1, verbo
 #'
 #' @param pairs string Input data.table with columns 'pair' and 'bam' corresponding to the sample name and bath to normal bam
 #' @param cutoff double Threshold for what percentage of normal samples must have reads for the region to be included
+#' @param mc.cores integer Number of cores to use
 #' @return Data.table of regions to include when calculating corrected reads
 #' @author Trent Walradt
 #' @export
