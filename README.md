@@ -8,7 +8,9 @@
 fragCounter
 ===========
 
-The goal of fragCounter is to correct WGS data for GC and mappability bias. The GC bias curve is determined by loess regression of read count by GC and mappability scores. Segmentation is done by circular binary segmentation (CBS) algorithm after getting tumor/normal ratios of corrected read counts.
+The goal of fragCounter is to correct Whole genome or targeted sequencing data for GC and mappability bias.                                                                                                                                                                                                                 
+The GC bias curve is determined by loess regression of read count by GC and mappability scores.                                                                                                                                                                                                                             
+Segmentation is done by circular binary segmentation (CBS) algorithm after getting tumor/normal ratios of corrected read counts. 
 
 Installation
 ------------
