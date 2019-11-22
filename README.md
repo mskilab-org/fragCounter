@@ -26,10 +26,47 @@ install.packages('devtools')
 devtools::install_github('mskilab/fragCounter)                                                                                                                                                                                                                                                                              
 ```   
 
+Example                                                                                                                                                                                                                                                                                                    
+------------  
+
+```{bash}
+$ ./frag -b inst/extdata/chr21.bam -d inst/extdata/gcMAP21/ -w 200  
+
+Rprofile Loading                                                                                                                                                                                                                                                                                                            
+Rprofile Finished Loading                                                                                                                                                                                                                                                                                                   
+                                                                                                                                                                                                                                                                                                                            
+                                                                                                                                                                                                                                                                                                                            
+███████╗██████╗  █████╗  ██████╗  ██████╗ ██████╗ ██╗   ██╗███╗   ██╗████████╗███████╗██████╗                                                                                                                                                                                                                               
+██╔════╝██╔══██╗██╔══██╗██╔════╝ ██╔════╝██╔═══██╗██║   ██║████╗  ██║╚══██╔══╝██╔════╝██╔══██╗                                                                                                                                                                                                                              
+█████╗  ██████╔╝███████║██║  ███╗██║     ██║   ██║██║   ██║██╔██╗ ██║   ██║   █████╗  ██████╔╝                                                                                                                                                                                                                              
+██╔══╝  ██╔══██╗██╔══██║██║   ██║██║     ██║   ██║██║   ██║██║╚██╗██║   ██║   ██╔══╝  ██╔══██╗                                                                                                                                                                                                                              
+██║     ██║  ██║██║  ██║╚██████╔╝╚██████╗╚██████╔╝╚██████╔╝██║ ╚████║   ██║   ███████╗██║  ██║                                                                                                                                                                                                                              
+╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝  ╚═════╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═══╝   ╚═╝   ╚══════╝╚═╝  ╚═╝                                                                                                                                                                                                                              
+                                                                                                                                                                                                                                                                                                                            
+                                                                                                                                                                                                                                                                                                                            
+                                                                                                                                                                                                                                                                                                                            
+Calling samtools view -f 0x02 -F 0x10 inst/extdata/chr21.bam -q 1 | cut -f "3,4,9" 
+Starting fragment count on inst/extdata/chr21.bam and min mapQ 1 and   insert size limit 10000  
+Finished computing coverage, and making GRanges  
+Finished acquiring coverage 
+Loaded GC and mappability  
+length cov is 314827, length gc is 3663, length map is 3663   
+Synced coverage, GC, and mappability   
+Modified gc / mappability correction 
+Converting to data.table 
+Converting to GRanges                                                                                                                                                                                                                                                                                                       
+Made GRanges
+
+```
+
+
+
 Usage (frag executable)                                                                                                                                                                                                                                                                                                     
 ------------
 
 ```{bash}
+$ ./frag -h
+
 Rprofile Loading                                                                                                                                                                                                                                                                                                            
 Rprofile Finished Loading                                                                                                                                                                                                                                                                                                   
 Usage: ./frag [options]                                                                                                                                                                                                                                                                                                     
