@@ -28,6 +28,12 @@ devtools::install_github('mskilab/fragCounter')
 
 Example                                                                                                                                                                                                                                                                                                    
 ------------  
+(after installing R package) Add fragCounter directory to PATH and test the executable 
+
+```{bash}
+$ export PATH=${PATH}:$(Rscript -e 'cat(paste0(installed.packages()["fragCounter", "LibPath"], "/fragCounter/extdata/"))')
+$ frag -h ## to see the help message
+```
 
 ```{bash}
 $ ./frag -b inst/extdata/chr21.bam -d inst/extdata/gcMAP21/ -w 200  
