@@ -27,7 +27,7 @@ if (!exists('opt'))
         make_option(c("-d", "--gcmapdir"), type = "character", help = "Mappability / GC content dir"),
         make_option(c("-q", "--minmapq"), type = "integer", default = 1, help = "Minimal map quality"),
         make_option(c("-p", "--paired"), type = "logical", default = TRUE, help = "Is paired"),
-        make_option(c("-e", "--exome"), type = "logical", default = TRUE, help = "Use exons as bins instead of fixed window"),
+        make_option(c("-e", "--exome"), type = "logical", default = FALSE, help = "Use exons as bins instead of fixed window"),
         make_option(c("-u", "--use.skel"), type = "logical", default = FALSE, help = "Use user defined regions instead of default exome skeleton"),
         make_option(c("-s", "--skeleton"), type = "character", help = "Path to skeleton file"),
         make_option(c("-o", "--outdir"), type = "character", default = './', help = "Directory to dump output into"),
