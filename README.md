@@ -127,4 +127,6 @@ GC and Mappability files for 1 kb WGS (hg19)
 These can be used as inputs to fragCounter to correct GC and Mappability biases. Make sure to save them in same directory and supplying the path to the directory. Retain the name of the file.
 
 GC file: http://mskilab.com/dryclean/hg19/gc1000.rds
+
+
 Mappability file: http://mskilab.com/dryclean/hg19/map1000.rds
