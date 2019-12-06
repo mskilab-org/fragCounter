@@ -119,3 +119,8 @@ Options:
                 Show this help message and exit
                 
 ```
+
+
+
+GC and Mappability files for 1 kb WGS (hg19)                                                                                                                                                                                                                                                                                                     
+------------
