@@ -135,4 +135,4 @@ Mappability file: http://mskilab.com/dryclean/hg19/map1000.rds
 GC and Mappability files for hg38 WGS (200bp)                                                                                                                                                                                                                                                                                                     
 ------------
 
-[gcmap.hg38.200bp.tar.gz](inst/extdata/gcmap.hg38.200bp.tar.gz)
+[gcmap.hg38.200bp.tar.gz](https://github.com/ShaiberAlon/fragCounter/raw/master/inst/extdata/gcmap.hg38.200bp.tar.gz)
