@@ -7,6 +7,7 @@
 #' @importFrom skidb read_gencode
 #' @importFrom Biostrings alphabetFrequency
 #' @importFrom parallel mclapply
+#'
 #' @importFrom Rsamtools BamFile
 #' @importFrom grDevices col2rgb rgb png dev.off
 #' @importFrom IRanges IRanges
@@ -277,10 +278,11 @@ multicoco = function(cov, numlevs = 1, base = max(10, 1e5 / max(width(cov))),
 #' @title fragCounter
 #' @description Runs entire fragCounter pipeline
 #' @author Marcin Imielinski
-#' @param bam string path to .bam file
+#' @param bam string path to .bam or .cram file
 #' @param skeleton string Input data.table with intervals for which there is coverage data
 #' @param cov string path to existing coverage rds or bedgraph 
 #' @param midpoint boolean If TRUE only count midpoint if FALSE then count bin footprint of every fragment interval
+#' @param reference reference file (recommended for CRAM, [NULL]
 #' @param window integer window / bin size
 #' @param minmapq double Minimal map quality
 #' @param paired boolean wether or not paired
@@ -288,10 +290,10 @@ multicoco = function(cov, numlevs = 1, base = max(10, 1e5 / max(width(cov))),
 #' @param gc.rds.dir string for tiles of width W, will look here for a file named gc{W}.rds in this directory
 #' @param map.rds.dir string for tiles of width W will look here for a file named map{W}.rds in this directory
 #' @param exome boolean If TRUE, perform correction using exons as bins instead of fixed size
-#' @param use.skel boolean flag If false then default exome skeleton from gencode is used, if TRUE, user defined skeleton is used
+#' @param use.skel boolean flag If false then default exome skeleton from gencode is used, if TRUE, user defined skeleton is usde
 #' @export
 
-fragCounter = function(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200, gc.rds.dir, map.rds.dir, minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE, use.skel = FALSE) {
+fragCounter = function(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200, gc.rds.dir, map.rds.dir, minmapq = 1, reference = NULL, paired = TRUE, outdir = NULL, exome = FALSE, use.skel = FALSE) {
   out.rds = paste(outdir, '/cov.rds', sep = '')
   imageroot = gsub('.rds$', '', out.rds)
   if (exome == TRUE) {
@@ -300,7 +302,7 @@ fragCounter = function(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200,
     cov$reads.corrected = coco(cov, mc.cores = 1, fields = c('gc', 'map'), iterative = T, exome = TRUE, imageroot = imageroot)$reads.corrected
 
   } else {
-    cov = PrepareCov(bam, cov = NULL, midpoint = midpoint, window = window, minmapq = minmapq, paired = paired, outdir)
+    cov = PrepareCov(bam, cov = NULL, midpoint = midpoint, window = window, minmapq = minmapq, paired = paired, outdir, reference = reference)
     cov = correctcov_stub(cov, gc.rds.dir = gc.rds.dir, map.rds.dir = map.rds.dir)
     cov$reads.corrected = multicoco(cov, numlevs = 1, base = max(10, 1e5/window), mc.cores = 1, fields = c('gc', 'map'), iterative = T, mono = T)$reads.corrected
   }
@@ -530,7 +532,7 @@ GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win 
 #' @author Trent Walradt
 #' @export
 
-PrepareCov = function(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200, minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE, use.skel = FALSE) {
+PrepareCov = function(bam, skeleton, cov = NULL, reference = NULL, midpoint = TRUE, window = 200, minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE, use.skel = FALSE) {
   if (exome == TRUE){
 #    cov = bam.cov.exome(bam, chunksize = 1e6, min.mapq = 1)
     cov = bam.cov.skel(bam, skeleton, chunksize = 1e6, min.mapq = 1, use.skel = use.skel)
@@ -543,14 +545,18 @@ PrepareCov = function(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200, 
       if (!midpoint) {
         cat("Running without midpoint!!!\n")
       }
-      print('Doing it!')
+#      print('Doing it!')
       if (is.null(paired)) {
         paired = TRUE
       }
       if (paired) {
-        cov = bamUtils::bam.cov.tile(bam, window = window, chunksize = 1e6, midpoint = TRUE, min.mapq = 1)  ## counts midpoints of fragments
+        cov = bamUtils::bam.cov.tile(bam, window = window, reference = reference, chunksize = 1e6, midpoint = TRUE, min.mapq = 1)  ## counts midpoints of fragments
       }
       else {
+        file.type = bamorcram(bam)
+        if (is.na(file.type) || file.type == 'cram')
+          stop('fragCounter not currently supported for single ended CRAM')
+
         sl = GenomeInfoDb::seqlengths(BamFile(bam))
         tiles = gr.tile(sl, window)
         cov = bamUtils::bam.cov.gr(bam, intervals = tiles, isPaired = NA, isProperPair = NA, hasUnmappedMate = NA, chunksize = 1e5, verbose = TRUE)  ## counts midpoints of fragments    # Can we increase chunksize?
@@ -893,8 +899,21 @@ alpha = function(col, alpha)
   return(out)
 }
 
-
-
+#' @title bamorcram
+#' @description
+#' Checks to see if file is bam or cram and 
+#' 
+bamorcram = function(file)
+{
+  check_valid_bam = suppressWarnings(readChar(gzfile(file, 'r'), 4))
+  file.type = NA
+  if (identical(check_valid_bam, 'BAM\1')){
+    file.type = 'bam'
+  } else if (identical(check_valid_bam, 'CRAM')){
+    file.type = 'cram'
+  }  
+  return(file.type)
+}
 
 #' @name bam.cov.skel
 #' @title Get coverage as GRanges from BAM using exons as tiles
@@ -918,15 +937,30 @@ alpha = function(col, alpha)
 #' @author Trent Walradt
 #' @export
 
-bam.cov.skel = function(bam.file, skeleton, chunksize = 1e5, min.mapq = 1, verbose = TRUE, max.tlen = 1e4, st.flag = "-f 0x02 -F 0x10", fragments = TRUE, do.gc = FALSE, use.skel = FALSE)
+bam.cov.skel = function(bam.file, skeleton, chunksize = 1e5, min.mapq = 1, verbose = TRUE, reference = NULL, max.tlen = 1e4, st.flag = "-f 0x02 -F 0x10", fragments = TRUE, do.gc = FALSE, use.skel = FALSE)
 {
   ## check that the BAM is valid
-    check_valid_bam = readChar(gzfile(bam.file, 'r'), 4)
-    if (!identical(check_valid_bam, 'BAM\1')){
-        stop("Cannot open BAM. A valid BAM for 'bam_file' must be provided.")
-    }
-  cmd = 'samtools view %s %s -q %s | cut -f "3,4,9"' ## cmd line to grab the rname, pos, and tlen columns
+  file.type = bamorcram(bam.file)
+  if (is.na(file.type))
+    stop("Cannot read from bam.file. A valid path to a BAM or CRAM file must be provided for 'bam_file' must be provided for bam file argument.")
   
+  ref = ''
+
+  if (file.type == 'cramo')
+  {
+    sl = tryCatch(seqlengths(FaFile(reference)), error = function(e) NULL)
+    if (is.null(sl))
+      stop('Valid fasta file must be provided with cram')
+    
+    ref = paste('-T', reference)
+  }
+  else
+  {
+    sl = seqlengths(BamFile(bam.file))
+  }
+  
+  cmd = 'samtools view %s %s %s -q %s | cut -f "3,4,9"' ## cmd line to grab the rname, pos, and tlen columns
+
   # numwin = length(exome)
 
   if (use.skel == FALSE){
@@ -938,8 +972,8 @@ bam.cov.skel = function(bam.file, skeleton, chunksize = 1e5, min.mapq = 1, verbo
   }
 
   numwin = nrow(skel)
-  cat('Calling', sprintf(cmd, st.flag, bam.file, min.mapq), '\n')
-  p = pipe(sprintf(cmd, st.flag, bam.file, min.mapq), open = 'r')
+  cat('Calling', sprintf(cmd, ref, st.flag, bam.file, min.mapq), '\n')
+  p = pipe(sprintf(cmd, ref, st.flag, bam.file, min.mapq), open = 'r')
   i = 0
 
   # counts = gr2dt(exome)
