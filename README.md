@@ -86,9 +86,9 @@ Options:
         -c COV, --cov=COV                                                                                                                                                                                                                                                                                                   
                 Path to existing coverage rds or bedgraph                                                                                                                                                                                                                                                                   
 
-        -r GCMAPDIR, --reference=REFERENCEFASTA
+        -r FASTA, --reference=FASTA
         
-                Path to reference FASTA - required only if cram file is provided.
+                Path to reference .fasta file - required only if cram file is provided.
                                                                                                                                                                                                                                                                                                                             
         -m MIDPOINT, --midpoint=MIDPOINT                                                                                                                                                                                                                                                                                    
                 If TRUE only count midpoint if FALSE then count bin footprint of every fragment interval                                                                                                                                                                                                                    
