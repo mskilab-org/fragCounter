@@ -3,7 +3,7 @@
 
 
 
-[![Build Status](https://travis-ci.org/mskilab/fragCounter.svg?branch=master)](https://travis-ci.org/mskilab/fragCounter) [![codecov.io](https://img.shields.io/codecov/c/github/mskilab/fragCounter.svg)](https://codecov.io/github/mskilab/fragCounter?branch=master)
+[![Build Status](https://travis-ci.com/mskilab/fragCounter.svg?branch=master)](https://travis-ci.com/mskilab/fragCounter) [![codecov.io](https://img.shields.io/codecov/c/github/mskilab/fragCounter.svg)](https://codecov.io/github/mskilab/fragCounter?branch=master)
 
 fragCounter
 ===========
