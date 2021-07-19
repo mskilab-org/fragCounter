@@ -95,7 +95,7 @@ multicoco = function(cov, numlevs = 1, base = max(10, 1e5 / max(width(cov))),
       tmp.cov = tmp.cov %Q% (!is.na(reads))
       # tmp.cov = gr.val(tiles, cov, val = c('reads', 'gc', 'map'), na.rm = TRUE)
     } else {
-      tmp.cov = seg2gr(cov.dt[,list(chr = seqnames[1], start = min(start), end = max(end), strand = strand[1], reads = mean(reads, na.rm = T)), by = get(paste("lev", numlevs, sep = ''))][end>start, ], seqlengths = sl)
+      tmp.cov = seg2gr(cov.dt[,list(chr = seqnames[1], start = min(start), end = max(end), strand = strand[1], reads = mean(reads, na.rm = T)), by =list(get(paste("lev", numlevs, sep = ''))][end>start, ], seqlengths = sl))
     }
     ix = which(!is.na(values(tmp.cov)[, 'reads']))
     tmp = data.frame()
