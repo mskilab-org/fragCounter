@@ -49,7 +49,8 @@ multicoco = function(cov, numlevs = 1, base = max(10, 1e5 / max(width(cov))),
                      fields = c("gc", "map"), iterative = TRUE, presegment = TRUE,
                      min.segwidth = 5e6, mono = TRUE, verbose = TRUE,
                      FUN = NULL, ..., mc.cores = 1, exome = FALSE) {
-  if (verbose) {
+
+   if (verbose) {
     cat('Converting to data.table\n')
   }
   WID = max(width(cov))
@@ -302,6 +303,7 @@ fragCounter = function(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200,
     cov$reads.corrected = coco(cov, mc.cores = 1, fields = c('gc', 'map'), iterative = T, exome = TRUE, imageroot = imageroot)$reads.corrected
 
   } else {
+
     cov = PrepareCov(bam, cov = cov, midpoint = midpoint, window = window, minmapq = minmapq, paired = paired, outdir, reference = reference)
     cov = correctcov_stub(cov, gc.rds.dir = gc.rds.dir, map.rds.dir = map.rds.dir)
     cov$reads.corrected = multicoco(cov, numlevs = 1, base = max(10, 1e5/window), mc.cores = 1, fields = c('gc', 'map'), iterative = T, mono = T)$reads.corrected
@@ -464,7 +466,7 @@ MAP.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', bw.path = 
   }
   setkey(map.out,index)
   tiles$score = map.out$mappability
-  tiles = gr.sub(tiles)
+  #tiles = gr.sub(tiles)
   tiles = gr.stripstrand(tiles)
   return(tiles)
 }
@@ -509,7 +511,7 @@ GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win 
   }
   setkey(gc.out,index)
   tiles$score = gc.out$gc
-  tiles = gr.sub(tiles)
+  #tiles = gr.sub(tiles)
   tiles = gr.stripstrand(tiles)
   return(tiles)
 }
@@ -629,8 +631,8 @@ correctcov_stub = function(cov.wig, mappability = 0.9, samplesize = 5e4, verbose
   if (is.null(cov$score)) { ## if $score field is empty then just assume that the first column of coverage is the "score" i.e. read count
     names(values(cov))[1] = 'score'
   }
-  map = gr.sub(map)
-  gc = gr.sub(gc)
+  #map = gr.sub(map)
+  #gc = gr.sub(gc)
   gc.str = gr.string(gc)
   map.str = gr.string(map)
   cov.str = gr.string(cov)
