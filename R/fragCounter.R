@@ -49,7 +49,8 @@ multicoco = function(cov, numlevs = 1, base = max(10, 1e5 / max(width(cov))),
                      fields = c("gc", "map"), iterative = TRUE, presegment = TRUE,
                      min.segwidth = 5e6, mono = TRUE, verbose = TRUE,
                      FUN = NULL, ..., mc.cores = 1, exome = FALSE) {
-  if (verbose) {
+
+   if (verbose) {
     cat('Converting to data.table\n')
   }
   WID = max(width(cov))
@@ -95,7 +96,7 @@ multicoco = function(cov, numlevs = 1, base = max(10, 1e5 / max(width(cov))),
       tmp.cov = tmp.cov %Q% (!is.na(reads))
       # tmp.cov = gr.val(tiles, cov, val = c('reads', 'gc', 'map'), na.rm = TRUE)
     } else {
-      tmp.cov = seg2gr(cov.dt[,list(chr = seqnames[1], start = min(start), end = max(end), strand = strand[1], reads = mean(reads, na.rm = T)), by = get(paste("lev", numlevs, sep = ''))][end>start, ], seqlengths = sl)
+      tmp.cov = seg2gr(cov.dt[,list(chr = seqnames[1], start = min(start), end = max(end), strand = strand[1], reads = mean(reads, na.rm = T)), by =list(get(paste("lev", numlevs, sep = '')))][end>start, ], seqlengths = sl)
     }
     ix = which(!is.na(values(tmp.cov)[, 'reads']))
     tmp = data.frame()
@@ -297,12 +298,13 @@ fragCounter = function(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200,
   out.rds = paste(outdir, '/cov.rds', sep = '')
   imageroot = gsub('.rds$', '', out.rds)
   if (exome == TRUE) {
-    cov = PrepareCov(bam, skeleton = skeleton, cov = NULL, midpoint = midpoint, window = window, minmapq = minmapq, paired = paired, outdir, exome = TRUE, use.skel = use.skel)
+    cov = PrepareCov(bam, skeleton = skeleton, cov = cov, midpoint = midpoint, window = window, minmapq = minmapq, paired = paired, outdir, exome = TRUE, use.skel = use.skel)
     cov = correctcov_stub(cov, gc.rds.dir = gc.rds.dir, map.rds.dir = map.rds.dir, exome = TRUE)
     cov$reads.corrected = coco(cov, mc.cores = 1, fields = c('gc', 'map'), iterative = T, exome = TRUE, imageroot = imageroot)$reads.corrected
 
   } else {
-    cov = PrepareCov(bam, cov = NULL, midpoint = midpoint, window = window, minmapq = minmapq, paired = paired, outdir, reference = reference)
+
+    cov = PrepareCov(bam, cov = cov, midpoint = midpoint, window = window, minmapq = minmapq, paired = paired, outdir, reference = reference)
     cov = correctcov_stub(cov, gc.rds.dir = gc.rds.dir, map.rds.dir = map.rds.dir)
     cov$reads.corrected = multicoco(cov, numlevs = 1, base = max(10, 1e5/window), mc.cores = 1, fields = c('gc', 'map'), iterative = T, mono = T)$reads.corrected
   }
@@ -464,7 +466,7 @@ MAP.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', bw.path = 
   }
   setkey(map.out,index)
   tiles$score = map.out$mappability
-  tiles = gr.sub(tiles)
+  #tiles = gr.sub(tiles)
   tiles = gr.stripstrand(tiles)
   return(tiles)
 }
@@ -509,7 +511,7 @@ GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win 
   }
   setkey(gc.out,index)
   tiles$score = gc.out$gc
-  tiles = gr.sub(tiles)
+  #tiles = gr.sub(tiles)
   tiles = gr.stripstrand(tiles)
   return(tiles)
 }
@@ -629,8 +631,8 @@ correctcov_stub = function(cov.wig, mappability = 0.9, samplesize = 5e4, verbose
   if (is.null(cov$score)) { ## if $score field is empty then just assume that the first column of coverage is the "score" i.e. read count
     names(values(cov))[1] = 'score'
   }
-  map = gr.sub(map)
-  gc = gr.sub(gc)
+  #map = gr.sub(map)
+  #gc = gr.sub(gc)
   gc.str = gr.string(gc)
   map.str = gr.string(map)
   cov.str = gr.string(cov)
@@ -717,7 +719,7 @@ coco = function(cov, base = max(10, 1e5 / max(width(cov))), fields = c("gc", "ma
       tmp.cov = tmp.cov %Q% (!is.na(reads))
       # tmp.cov = gr.val(tiles, cov, val = c('reads', 'gc', 'map'), na.rm = TRUE)
     } else {
-      tmp.cov = seg2gr(cov.dt[,list(chr = seqnames[1], start = min(start), end = max(end), strand = strand[1], reads = mean(reads, na.rm = T)), by = get(paste("lev", numlevs, sep = ''))][end>start, ], seqlengths = sl)
+      tmp.cov = seg2gr(cov.dt[,list(chr = seqnames[1], start = min(start), end = max(end), strand = strand[1], reads = mean(reads, na.rm = T)), by = list(get(paste("lev", numlevs, sep = '')))][end>start, ], seqlengths = sl)
     }
     ix = which(!is.na(values(tmp.cov)[, 'reads']))
     tmp = data.frame()
