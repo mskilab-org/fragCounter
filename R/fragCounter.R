@@ -291,19 +291,20 @@ multicoco = function(cov, numlevs = 1, base = max(10, 1e5 / max(width(cov))),
 #' @param map.rds.dir string for tiles of width W will look here for a file named map{W}.rds in this directory
 #' @param exome boolean If TRUE, perform correction using exons as bins instead of fixed size
 #' @param use.skel boolean flag If false then default exome skeleton from gencode is used, if TRUE, user defined skeleton is usde
+#' @param chr.sub boolean if TRUE, remove 'chr' prefix on seqnames. default TRUE
 #' @export
 
-fragCounter = function(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200, gc.rds.dir, map.rds.dir, minmapq = 1, reference = NULL, paired = TRUE, outdir = NULL, exome = FALSE, use.skel = FALSE) {
+fragCounter = function(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200, gc.rds.dir, map.rds.dir, minmapq = 1, reference = NULL, paired = TRUE, outdir = NULL, exome = FALSE, use.skel = FALSE, chr.sub = TRUE) {
   out.rds = paste(outdir, '/cov.rds', sep = '')
   imageroot = gsub('.rds$', '', out.rds)
   if (exome == TRUE) {
     cov = PrepareCov(bam, skeleton = skeleton, cov = NULL, midpoint = midpoint, window = window, minmapq = minmapq, paired = paired, outdir, exome = TRUE, use.skel = use.skel)
-    cov = correctcov_stub(cov, gc.rds.dir = gc.rds.dir, map.rds.dir = map.rds.dir, exome = TRUE)
+    cov = correctcov_stub(cov, gc.rds.dir = gc.rds.dir, map.rds.dir = map.rds.dir, exome = TRUE, chr.sub = chr.sub)
     cov$reads.corrected = coco(cov, mc.cores = 1, fields = c('gc', 'map'), iterative = T, exome = TRUE, imageroot = imageroot)$reads.corrected
 
   } else {
     cov = PrepareCov(bam, cov = NULL, midpoint = midpoint, window = window, minmapq = minmapq, paired = paired, outdir, reference = reference)
-    cov = correctcov_stub(cov, gc.rds.dir = gc.rds.dir, map.rds.dir = map.rds.dir)
+    cov = correctcov_stub(cov, gc.rds.dir = gc.rds.dir, map.rds.dir = map.rds.dir, chr.sub = chr.sub)
     cov$reads.corrected = multicoco(cov, numlevs = 1, base = max(10, 1e5/window), mc.cores = 1, fields = c('gc', 'map'), iterative = T, mono = T)$reads.corrected
   }
   if (!is.null(outdir)) {
@@ -436,10 +437,11 @@ fragCounter = function(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200,
 #' @param twobit.win integer How many windows of the twobit file to load into memory on each core
 #' @param mc.cores integer How many cores to use
 #' @param exome boolean If TRUE, calculate mappability for exons instead of window
+#' @param chr.sub logical if TRUE replace chr prefix in seqnames, default TRUE
 #' @author Trent Walradt
 #' @export
 
-MAP.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', bw.path = '~/DB/UCSC/wgEncodeCrgMapabilityAlign100mer.bigWig', twobit.win = 1e3, mc.cores = 1, exome = FALSE) {
+MAP.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', bw.path = '~/DB/UCSC/wgEncodeCrgMapabilityAlign100mer.bigWig', twobit.win = 1e3, mc.cores = 1, exome = FALSE, chr.sub = TRUE) {
   if (exome == TRUE){
     tiles = reduce(read_gencode('exon'))
     GenomeInfoDb::seqlevelsStyle(tiles) <- "UCSC" #Formatting chromosome notation
@@ -464,7 +466,7 @@ MAP.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', bw.path = 
   }
   setkey(map.out,index)
   tiles$score = map.out$mappability
-  tiles = gr.sub(tiles)
+  if (chr.sub) { tiles = gr.sub(tiles) }
   tiles = gr.stripstrand(tiles)
   return(tiles)
 }
@@ -479,10 +481,11 @@ MAP.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', bw.path = 
 #' @param twobit.win integer How many windows of the twobit file to load into memory on each core
 #' @param mc.cores integer How many cores to use
 #' @param exome boolean If TRUE, calculate mappability for exons instead of window
+#' @param chr.sub boolean if TRUE, replace chr prefix in seqnames. default TRUE
 #' @author Trent Walradt
 #' @export
 
-GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win = 1e3, mc.cores = 1, exome = FALSE) {
+GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win = 1e3, mc.cores = 1, exome = FALSE, chr.sub = TRUE) {
   if (exome == TRUE){
     tiles = reduce(read_gencode('exon'))
     GenomeInfoDb::seqlevelsStyle(tiles) <- "UCSC"
@@ -509,7 +512,7 @@ GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win 
   }
   setkey(gc.out,index)
   tiles$score = gc.out$gc
-  tiles = gr.sub(tiles)
+  if (chr.sub) { tiles = gr.sub(tiles) }
   tiles = gr.stripstrand(tiles)
   return(tiles)
 }
@@ -588,10 +591,11 @@ PrepareCov = function(bam, skeleton, cov = NULL, reference = NULL, midpoint = TR
 #' @param gc.rds.dir string for tiles of width W, will look here for a file named gc{W}.rds in this directory
 #' @param map.rds.dir string for tiles of width W will look here for a file named map{W}.rds in this directory
 #' @param exome boolean If TRUE, look in gc/map.rds.dir for files called 'gcexome.rds' and 'mapexome.rds'
+#' @param chr.sub boolean if TRUE replace chr prefix in seqnames, default TRUE.
 #' @author Trent Walradt
 #' @export
 
-correctcov_stub = function(cov.wig, mappability = 0.9, samplesize = 5e4, verbose = T, gc.rds.dir, map.rds.dir, exome = FALSE) {
+correctcov_stub = function(cov.wig, mappability = 0.9, samplesize = 5e4, verbose = T, gc.rds.dir, map.rds.dir, exome = FALSE, chr.sub = TRUE) {
   if (is.character(cov.wig)) {
     if (grepl('(\\.bedgraph$)|(\\.wig$)|(\\.bw$)', cov.wig)) {
       cov = import.ucsc(cov.wig)
@@ -629,8 +633,10 @@ correctcov_stub = function(cov.wig, mappability = 0.9, samplesize = 5e4, verbose
   if (is.null(cov$score)) { ## if $score field is empty then just assume that the first column of coverage is the "score" i.e. read count
     names(values(cov))[1] = 'score'
   }
-  map = gr.sub(map)
-  gc = gr.sub(gc)
+  has.chr = any(grepl("^chr", as.character(seqnames(cov))))
+  map = gUtils::gr.nochr(map)
+  gc = gUtils::gr.nochr(gc)
+  cov = gUtils::gr.nochr(cov)
   gc.str = gr.string(gc)
   map.str = gr.string(map)
   cov.str = gr.string(cov)
@@ -656,6 +662,7 @@ correctcov_stub = function(cov.wig, mappability = 0.9, samplesize = 5e4, verbose
   cat('Synced coverage, GC, and mappability\n')
   cov = sort(gr.fix(cov))        
   cat('Modified gc / mappability correction\n')
+  if (has.chr && !chr.sub) { cov = gUtils::gr.chr(cov) }
   return(cov)
 }
 
