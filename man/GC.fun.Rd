@@ -4,8 +4,14 @@
 \alias{GC.fun}
 \title{GC content calculator}
 \usage{
-GC.fun(win.size = 200, twobitURL = "~/DB/UCSC/hg19.2bit",
-  twobit.win = 1000, mc.cores = 1, exome = FALSE)
+GC.fun(
+  win.size = 200,
+  twobitURL = "~/DB/UCSC/hg19.2bit",
+  twobit.win = 1000,
+  mc.cores = 1,
+  exome = FALSE,
+  chr.sub = TRUE
+)
 }
 \arguments{
 \item{win.size}{integer Window size, in basepairs, to calculate GC content for (should match window
@@ -18,6 +24,8 @@ size of your coverage file}
 \item{mc.cores}{integer How many cores to use}
 
 \item{exome}{boolean If TRUE, calculate mappability for exons instead of window}
+
+\item{chr.sub}{boolean if TRUE, replace chr prefix in seqnames. default TRUE}
 }
 \description{
 Calculates GC content across the genome for a given sized window
