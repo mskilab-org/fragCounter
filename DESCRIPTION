@@ -22,7 +22,9 @@ Imports:
   DNAcopy,
   GenomeInfoDb,
   IRanges,
-  Rsamtools,
+  Rsamtools
+Suggests:
+  testthat,
   skidb,
   ffTrack
 License: GPL-2
