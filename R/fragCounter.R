@@ -553,7 +553,7 @@ PrepareCov = function(bam, skeleton, cov = NULL, reference = NULL, midpoint = TR
         paired = TRUE
       }
       if (paired) {
-        cov = bamUtils::bam.cov.tile(bam, window = window, reference = reference, chunksize = 1e6, midpoint = TRUE, min.mapq = 1)  ## counts midpoints of fragments
+        cov = bamUtils::bam.cov.tile(bam, window = window, chunksize = 1e6, midpoint = TRUE, min.mapq = 1)  ## counts midpoints of fragments
       }
       else {
         file.type = bamorcram(bam)
