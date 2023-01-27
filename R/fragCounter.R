@@ -170,7 +170,7 @@ multicoco = function(cov, numlevs = 1, base = max(10, 1e5 / max(width(cov))),
       if (verbose) {
         cat('Quantile filtering response and covariates\n')
       }
-      range <- quantile(x$reads[x$valid], prob = c(routlier, 1 - routlier), na.rm = TRUE)
+      range <- quantile(x$reads[x$valid & x$reads > 0], prob = c(routlier, 1 - routlier), na.rm = TRUE)
       if (verbose) {
         cat(sprintf("Response min quantile: %s max quantile: %s\n", round(range[1],2), round(range[2],2)))
       }
