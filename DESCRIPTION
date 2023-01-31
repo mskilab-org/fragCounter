@@ -22,11 +22,12 @@ Imports:
   DNAcopy,
   GenomeInfoDb,
   IRanges,
-  Rsamtools
-Suggests:
-  testthat,
+  Rsamtools,
   skidb,
   ffTrack
+Suggests:
+  testthat,
+  covr
 License: GPL-2
 Encoding: UTF-8
 LazyData: true
