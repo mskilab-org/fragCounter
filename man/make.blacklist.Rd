@@ -10,6 +10,8 @@ make.blacklist(pairs, cutoff = 0.9, mc.cores = mc.cores)
 \item{pairs}{string Input data.table with columns 'pair' and 'bam' corresponding to the sample name and bath to normal bam}
 
 \item{cutoff}{double Threshold for what percentage of normal samples must have reads for the region to be included}
+
+\item{mc.cores}{integer Number of cores to use}
 }
 \value{
 Data.table of regions to include when calculating corrected reads

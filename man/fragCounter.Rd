@@ -4,12 +4,25 @@
 \alias{fragCounter}
 \title{fragCounter}
 \usage{
-fragCounter(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200,
-  gc.rds.dir, map.rds.dir, minmapq = 1, paired = TRUE, outdir = NULL,
-  exome = FALSE, use.skel = FALSE)
+fragCounter(
+  bam,
+  skeleton,
+  cov = NULL,
+  midpoint = TRUE,
+  window = 200,
+  gc.rds.dir,
+  map.rds.dir,
+  minmapq = 1,
+  reference = NULL,
+  paired = TRUE,
+  outdir = NULL,
+  exome = FALSE,
+  use.skel = FALSE,
+  chr.sub = TRUE
+)
 }
 \arguments{
-\item{bam}{string path to .bam file}
+\item{bam}{string path to .bam or .cram file}
 
 \item{skeleton}{string Input data.table with intervals for which there is coverage data}
 
@@ -25,13 +38,17 @@ fragCounter(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200,
 
 \item{minmapq}{double Minimal map quality}
 
+\item{reference}{reference file (recommended for CRAM, [NULL]}
+
 \item{paired}{boolean wether or not paired}
 
 \item{outdir}{string Directory to dump output into}
 
 \item{exome}{boolean If TRUE, perform correction using exons as bins instead of fixed size}
 
-\item{use.skel}{boolean flag If false then default exome skeleton from gencode is used, if TRUE, user defined skeleton is used}
+\item{use.skel}{boolean flag If false then default exome skeleton from gencode is used, if TRUE, user defined skeleton is usde}
+
+\item{chr.sub}{boolean if TRUE, remove 'chr' prefix on seqnames. default TRUE}
 }
 \description{
 Runs entire fragCounter pipeline

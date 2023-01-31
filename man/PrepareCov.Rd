@@ -4,9 +4,19 @@
 \alias{PrepareCov}
 \title{PrepareCov}
 \usage{
-PrepareCov(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200,
-  minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE,
-  use.skel = FALSE)
+PrepareCov(
+  bam,
+  skeleton,
+  cov = NULL,
+  reference = NULL,
+  midpoint = TRUE,
+  window = 200,
+  minmapq = 1,
+  paired = TRUE,
+  outdir = NULL,
+  exome = FALSE,
+  use.skel = FALSE
+)
 }
 \arguments{
 \item{bam}{path to .bam file}

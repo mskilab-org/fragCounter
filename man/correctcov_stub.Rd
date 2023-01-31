@@ -4,8 +4,16 @@
 \alias{correctcov_stub}
 \title{Correct coverage stub}
 \usage{
-correctcov_stub(cov.wig, mappability = 0.9, samplesize = 50000,
-  verbose = T, gc.rds.dir, map.rds.dir, exome = FALSE)
+correctcov_stub(
+  cov.wig,
+  mappability = 0.9,
+  samplesize = 50000,
+  verbose = T,
+  gc.rds.dir,
+  map.rds.dir,
+  exome = FALSE,
+  chr.sub = TRUE
+)
 }
 \arguments{
 \item{cov.wig}{wig file of coverage tiles of width W or pointer to rds file
@@ -22,6 +30,8 @@ of sorted GRanges object or GRanges object}
 \item{map.rds.dir}{string for tiles of width W will look here for a file named map{W}.rds in this directory}
 
 \item{exome}{boolean If TRUE, look in gc/map.rds.dir for files called 'gcexome.rds' and 'mapexome.rds'}
+
+\item{chr.sub}{boolean if TRUE replace chr prefix in seqnames, default TRUE.}
 }
 \description{
 prepares GC, mappability, and coverage files for multicoco
