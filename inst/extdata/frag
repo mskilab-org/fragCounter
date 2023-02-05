@@ -53,6 +53,6 @@ suppressWarnings(suppressPackageStartupMessages(library(skidb)))
 suppressWarnings(suppressPackageStartupMessages(library(data.table)))
 message(dr.str)
 
-out = fragCounter(bam = opt$bam, cov = opt$cov, window = opt$window, gc.rds.dir = opt$gcmapdir, map.rds.dir = opt$gcmapdir, minmapq = opt$minmapq, paired = opt$paired, outdir = opt$outdir, exome = opt$exome, use.skel = opt$use.skel, skeleton = opt$skeleton, opt$chrsub)
+out = fragCounter(bam = opt$bam, cov = opt$cov, window = opt$window, gc.rds.dir = opt$gcmapdir, map.rds.dir = opt$gcmapdir, minmapq = opt$minmapq, paired = opt$paired, outdir = opt$outdir, exome = opt$exome, use.skel = opt$use.skel, skeleton = opt$skeleton, chr.sub = opt$chrsub)
 
 saveRDS(out, paste(opt$outdir, 'cov.rds', sep = '/'))
