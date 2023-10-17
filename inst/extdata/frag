@@ -28,7 +28,8 @@ if (!exists('opt'))
         make_option(c("-q", "--minmapq"), type = "integer", default = 1, help = "Minimal map quality"),
         make_option(c("-p", "--paired"), type = "logical", default = TRUE, help = "Is paired"),
         make_option(c("-e", "--exome"), type = "logical", default = FALSE, help = "Use exons as bins instead of fixed window"),
-        make_option(c("-r", "--chrsub"), type = "logical", default = TRUE, help = "remove chr prefix from seqnames"),
+	make_option(c("-r", "--reference"), type = "character", default = NULL, help = "Reference FASTA path (required for CRAM)"),
+        make_option(c("-a", "--chrsub"), type = "logical", default = TRUE, help = "remove chr prefix from seqnames"),
         make_option(c("-u", "--use.skel"), type = "logical", default = FALSE, help = "Use user defined regions instead of default exome skeleton"),
         make_option(c("-s", "--skeleton"), type = "character", help = "Path to skeleton file"),
         make_option(c("-o", "--outdir"), type = "character", default = './', help = "Directory to dump output into"),
@@ -51,8 +52,9 @@ if (!exists('opt'))
 suppressWarnings(suppressPackageStartupMessages(library(fragCounter)))
 suppressWarnings(suppressPackageStartupMessages(library(skidb)))
 suppressWarnings(suppressPackageStartupMessages(library(data.table)))
+suppressWarnings(suppressPackageStartupMessages(library(GenomeInfoDb)))
 message(dr.str)
 
-out = fragCounter(bam = opt$bam, cov = opt$cov, window = opt$window, gc.rds.dir = opt$gcmapdir, map.rds.dir = opt$gcmapdir, minmapq = opt$minmapq, paired = opt$paired, outdir = opt$outdir, exome = opt$exome, use.skel = opt$use.skel, skeleton = opt$skeleton, chr.sub = opt$chrsub)
+out = fragCounter(bam = opt$bam, cov = opt$cov, window = opt$window, gc.rds.dir = opt$gcmapdir, map.rds.dir = opt$gcmapdir, minmapq = opt$minmapq, paired = opt$paired, outdir = opt$outdir, exome = opt$exome, use.skel = opt$use.skel, skeleton = opt$skeleton, chr.sub = opt$chrsub, reference = opt$reference)
 
 saveRDS(out, paste(opt$outdir, 'cov.rds', sep = '/'))

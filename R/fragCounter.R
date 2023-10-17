@@ -1,6 +1,7 @@
 #' @import GenomicRanges
 #' @import gUtils
 #' @import rtracklayer
+#' @import GenomeInfoDb
 #' @importFrom GenomeInfoDb seqlengths
 #' @importFrom data.table data.table fread rbindlist set setkey setkeyv setnames transpose as.data.table
 #' @importFrom stats cor loess predict quantile
@@ -303,7 +304,7 @@ fragCounter = function(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200,
     cov$reads.corrected = coco(cov, mc.cores = 1, fields = c('gc', 'map'), iterative = T, exome = TRUE, imageroot = imageroot)$reads.corrected
 
   } else {
-    cov = PrepareCov(bam, cov = NULL, midpoint = midpoint, window = window, minmapq = minmapq, paired = paired, outdir, reference = reference)
+    cov = PrepareCov(bam, cov = NULL, reference = reference, midpoint = midpoint, window = window, minmapq = minmapq, paired = paired, outdir)
     cov = correctcov_stub(cov, gc.rds.dir = gc.rds.dir, map.rds.dir = map.rds.dir, chr.sub = chr.sub)
     cov$reads.corrected = multicoco(cov, numlevs = 1, base = max(10, 1e5/window), mc.cores = 1, fields = c('gc', 'map'), iterative = T, mono = T)$reads.corrected
   }
@@ -524,7 +525,8 @@ GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win 
 #' @author Marcin Imielinski
 #' @param bam path to .bam file
 #' @param skeleton string Input data.table with intervals for which there is coverage data
-#' @param cov Path to existing coverage rds or bedgraph 
+#' @param cov Path to existing coverage rds or bedgraph
+#' @param reference reference file (recommended for CRAM, [NULL] 
 #' @param midpoint If TRUE only count midpoint if FALSE then count bin footprint of every fragment interval
 #' @param window window / bin size
 #' @param minmapq Minimal map quality
@@ -536,6 +538,7 @@ GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win 
 #' @export
 
 PrepareCov = function(bam, skeleton, cov = NULL, reference = NULL, midpoint = TRUE, window = 200, minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE, use.skel = FALSE) {
+  library(GenomeInfoDb) # ADDED BY TANUBRATA: Forcefully loading GenomeInfoDb to Namespace since it is failing for cram files
   if (exome == TRUE){
 #    cov = bam.cov.exome(bam, chunksize = 1e6, min.mapq = 1)
     cov = bam.cov.skel(bam, skeleton, chunksize = 1e6, min.mapq = 1, use.skel = use.skel)
@@ -553,7 +556,7 @@ PrepareCov = function(bam, skeleton, cov = NULL, reference = NULL, midpoint = TR
         paired = TRUE
       }
       if (paired) {
-        cov = bamUtils::bam.cov.tile(bam, window = window, chunksize = 1e6, midpoint = TRUE, min.mapq = 1)  ## counts midpoints of fragments
+        cov = bamUtils::bam.cov.tile(bam, window = window, chunksize = 1e6, midpoint = TRUE, min.mapq = 1, reference = reference)  ## counts midpoints of fragments
       }
       else {
         file.type = bamorcram(bam)
@@ -953,7 +956,7 @@ bam.cov.skel = function(bam.file, skeleton, chunksize = 1e5, min.mapq = 1, verbo
   
   ref = ''
 
-  if (file.type == 'cramo')
+  if (file.type == 'cram')
   {
     sl = tryCatch(seqlengths(FaFile(reference)), error = function(e) NULL)
     if (is.null(sl))

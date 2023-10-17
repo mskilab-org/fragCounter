@@ -5,11 +5,12 @@ Authors@R: person(given = "Marcin", family = "Imielinski", email = "mimielinski@
 Description: GC bias curve is determined by loess regression of read count by GC and mappability scores. Segmentation is done by circular binary segmentation (CBS) algorithm after getting tumor/normal ratios of corrected read counts.
 biocViews:
   bioc::3.10/GenomicRanges
+  bioc::3.10/GenomeInfoDb
 Remotes:
-  github::mskilab/gUtils,
-  github::mskilab/bamUtils,
-  github::mskilab/ffTrack,
-  github::mskilab/skidb
+  github::mskilab-org/gUtils,
+  github::mskilab-org/bamUtils,
+  github::mskilab-org/ffTrack,
+  github::mskilab-org/skidb
 Depends:
   R (>= 3.4)
 Imports:
@@ -31,4 +32,4 @@ Suggests:
 License: GPL-2
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.2.1.9000
+RoxygenNote: 7.2.3
