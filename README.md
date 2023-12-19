@@ -132,6 +132,8 @@ GC and Mappability files for 1 kb WGS (hg19)
 These can be used as inputs to fragCounter to correct GC and Mappability biases. Make sure to save them in same directory and supplying the path to the directory. Retain the name of the file.
 
 GC file: [https://mskilab.s3.amazonaws.com/hg19/GCMAP/gcmap.19/gc1000.rds](https://mskilab.s3.amazonaws.com/hg19/GCMAP/gcmap.19/gc1000.rds)
+
+
 Mappability file: [https://mskilab.s3.amazonaws.com/hg19/GCMAP/gcmap.19/map1000.rds](https://mskilab.s3.amazonaws.com/hg19/GCMAP/gcmap.19/map1000.rds)
 
 
@@ -139,11 +141,15 @@ GC and Mappability files for hg38 WGS (200bp)
 ------------
 
 GC file: [https://mskilab.s3.amazonaws.com/hg38/GCMAP/gcmap.38/gc200.rds](https://mskilab.s3.amazonaws.com/hg38/GCMAP/gcmap.38/gc200.rds)
+
+
 Mappability file: [https://mskilab.s3.amazonaws.com/hg38/GCMAP/gcmap.38/map200.rds](https://mskilab.s3.amazonaws.com/hg38/GCMAP/gcmap.38/map200.rds)
 
 GC and Mappability files for hg38 WGS (1000bp)                                                                                                                                                                                                                                                                                                     
 ------------
 
 GC file: [https://mskilab.s3.amazonaws.com/hg38/GCMAP/gcmap.38/gc1000.rds](https://mskilab.s3.amazonaws.com/hg38/GCMAP/gcmap.38/gc1000.rds)
+
+
 Mappability file: [https://mskilab.s3.amazonaws.com/hg38/GCMAP/gcmap.38/map1000.rds](https://mskilab.s3.amazonaws.com/hg38/GCMAP/gcmap.38/map1000.rds)
 
