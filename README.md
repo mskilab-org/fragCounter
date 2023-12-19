@@ -127,17 +127,17 @@ Options:
 
 
 
-GC and Mappability files for 1 kb WGS (hg19)                                                                                                                                                                                                                                                                                                     
+GC and Mappability files for 200bp and 1kbp (both hg19 and hg38)                                                                                                                                                                                                                                                                                                     
 ------------
-These can be used as inputs to fragCounter to correct GC and Mappability biases. Make sure to save them in same directory and supplying the path to the directory. Retain the name of the file.
+These can be used as inputs to fragCounter to correct GC and Mappability biases.
+The files are appended to this repo in `gcmap` though must be untar-ed as
+follows:
 
-GC file: http://mskilab.com/dryclean/hg19/gc1000.rds
+```
+tar -xvzf gcmap/gcmap.19.tar.gz
+tar -xvzf gcmap/gcmap.38.tar.gz
+```
+Parameter usage
 
-
-Mappability file: http://mskilab.com/dryclean/hg19/map1000.rds
-
-
-GC and Mappability files for hg38 WGS (200bp)                                                                                                                                                                                                                                                                                                     
-------------
-
-[gcmap.hg38.200bp.tar.gz](https://github.com/ShaiberAlon/fragCounter/raw/master/inst/extdata/gcmap.hg38.200bp.tar.gz)
+for hg19 samples: `--gcmapdir= ./gcmap/gcmap.19`
+for hg38 samples: `--gcmapdir= ./gcmap/gcmap.38`
