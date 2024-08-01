@@ -634,7 +634,14 @@ correctcov_stub = function(cov.wig, mappability = 0.9, samplesize = 5e4, verbose
     map = readRDS(map.rds)
   }
   if (is.null(cov$score)) { ## if $score field is empty then just assume that the first column of coverage is the "score" i.e. read count
-    names(values(cov))[1] = 'score'
+    # If `paired=FALSE` used in `PrepareCov`, count will be set and should be used here.
+    if (!is.null(cov$count)) {
+      cov$score = cov$count
+    }
+    else {
+      warning('Coverage object does not have a score or count field - using first value column as score')
+      names(values(cov))[1] = 'score'
+    }
   }
   has.chr = any(grepl("^chr", as.character(seqnames(cov))))
   map = gUtils::gr.nochr(map)
