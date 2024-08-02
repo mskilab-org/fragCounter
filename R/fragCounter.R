@@ -293,18 +293,19 @@ multicoco = function(cov, numlevs = 1, base = max(10, 1e5 / max(width(cov))),
 #' @param exome boolean If TRUE, perform correction using exons as bins instead of fixed size
 #' @param use.skel boolean flag If false then default exome skeleton from gencode is used, if TRUE, user defined skeleton is usde
 #' @param chr.sub boolean if TRUE, remove 'chr' prefix on seqnames. default TRUE
+#' @param mc.cores integer Number of cores in mclapply (default = 1)
 #' @export
 
-fragCounter = function(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200, gc.rds.dir, map.rds.dir, minmapq = 1, reference = NULL, paired = TRUE, outdir = NULL, exome = FALSE, use.skel = FALSE, chr.sub = TRUE) {
+fragCounter = function(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200, gc.rds.dir, map.rds.dir, minmapq = 1, reference = NULL, paired = TRUE, outdir = NULL, exome = FALSE, use.skel = FALSE, chr.sub = TRUE, mc.cores = 1) {
   out.rds = paste(outdir, '/cov.rds', sep = '')
   imageroot = gsub('.rds$', '', out.rds)
   if (exome == TRUE) {
-    cov = PrepareCov(bam, skeleton = skeleton, cov = NULL, midpoint = midpoint, window = window, minmapq = minmapq, paired = paired, outdir, exome = TRUE, use.skel = use.skel)
+    cov = PrepareCov(bam, skeleton = skeleton, cov = NULL, midpoint = midpoint, window = window, minmapq = minmapq, paired = paired, outdir, exome = TRUE, use.skel = use.skel, mc.cores = mc.cores)
     cov = correctcov_stub(cov, gc.rds.dir = gc.rds.dir, map.rds.dir = map.rds.dir, exome = TRUE, chr.sub = chr.sub)
     cov$reads.corrected = coco(cov, mc.cores = 1, fields = c('gc', 'map'), iterative = T, exome = TRUE, imageroot = imageroot)$reads.corrected
 
   } else {
-    cov = PrepareCov(bam, cov = NULL, reference = reference, midpoint = midpoint, window = window, minmapq = minmapq, paired = paired, outdir)
+    cov = PrepareCov(bam, cov = NULL, reference = reference, midpoint = midpoint, window = window, minmapq = minmapq, paired = paired, outdir, mc.cores = mc.cores)
     cov = correctcov_stub(cov, gc.rds.dir = gc.rds.dir, map.rds.dir = map.rds.dir, chr.sub = chr.sub)
     cov$reads.corrected = multicoco(cov, numlevs = 1, base = max(10, 1e5/window), mc.cores = 1, fields = c('gc', 'map'), iterative = T, mono = T)$reads.corrected
   }
@@ -534,10 +535,11 @@ GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win 
 #' @param outdir Directory to dump output into
 #' @param exome boolean If TRUE, use bam.cov.exome to calculate coverage
 #' @param use.skel boolean flag If false then default exome skeleton from gencode is used, if TRUE, user defined skeleton is used
+#' @param mc.cores integer Number of cores in mclapply (default = 1)
 #' @author Trent Walradt
 #' @export
 
-PrepareCov = function(bam, skeleton, cov = NULL, reference = NULL, midpoint = TRUE, window = 200, minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE, use.skel = FALSE) {
+PrepareCov = function(bam, skeleton, cov = NULL, reference = NULL, midpoint = TRUE, window = 200, minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE, use.skel = FALSE, mc.cores = 1) {
   library(GenomeInfoDb) # ADDED BY TANUBRATA: Forcefully loading GenomeInfoDb to Namespace since it is failing for cram files
   if (exome == TRUE){
 #    cov = bam.cov.exome(bam, chunksize = 1e6, min.mapq = 1)
@@ -565,7 +567,7 @@ PrepareCov = function(bam, skeleton, cov = NULL, reference = NULL, midpoint = TR
 
         sl = GenomeInfoDb::seqlengths(BamFile(bam))
         tiles = gr.tile(sl, window)
-        cov = bamUtils::bam.cov.gr(bam, intervals = tiles, isPaired = NA, isProperPair = NA, hasUnmappedMate = NA, chunksize = 1e5, verbose = TRUE)  ## counts midpoints of fragments    # Can we increase chunksize?
+        cov = bamUtils::bam.cov.gr(bam, intervals = tiles, isPaired = NA, isProperPair = NA, hasUnmappedMate = NA, chunksize = 1e5, verbose = TRUE, mc.cores = mc.cores)  ## counts midpoints of fragments    # Can we increase chunksize?
         cov$count = cov$records/width(cov)
       }
     }
@@ -634,7 +636,14 @@ correctcov_stub = function(cov.wig, mappability = 0.9, samplesize = 5e4, verbose
     map = readRDS(map.rds)
   }
   if (is.null(cov$score)) { ## if $score field is empty then just assume that the first column of coverage is the "score" i.e. read count
-    names(values(cov))[1] = 'score'
+    # If `paired=FALSE` used in `PrepareCov`, count will be set and should be used here.
+    if (!is.null(cov$count)) {
+      cov$score = cov$count
+    }
+    else {
+      warning('Coverage object does not have a score or count field - using first value column as score')
+      names(values(cov))[1] = 'score'
+    }
   }
   has.chr = any(grepl("^chr", as.character(seqnames(cov))))
   map = gUtils::gr.nochr(map)
