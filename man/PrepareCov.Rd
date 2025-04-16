@@ -11,11 +11,12 @@ PrepareCov(
   reference = NULL,
   midpoint = TRUE,
   window = 200,
-  minmapq = 1,
+  minmapq = 20,
   paired = TRUE,
   outdir = NULL,
   exome = FALSE,
-  use.skel = FALSE
+  use.skel = FALSE,
+  st.flag = fragCounter::ST.FLAG
 )
 }
 \arguments{
@@ -24,6 +25,8 @@ PrepareCov(
 \item{skeleton}{string Input data.table with intervals for which there is coverage data}
 
 \item{cov}{Path to existing coverage rds or bedgraph}
+
+\item{reference}{reference file (recommended for CRAM, [NULL]}
 
 \item{midpoint}{If TRUE only count midpoint if FALSE then count bin footprint of every fragment interval}
 

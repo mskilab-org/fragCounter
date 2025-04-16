@@ -8,11 +8,11 @@ bam.cov.skel(
   bam.file,
   skeleton,
   chunksize = 1e+05,
-  min.mapq = 1,
+  min.mapq = 20,
   verbose = TRUE,
   reference = NULL,
   max.tlen = 10000,
-  st.flag = "-f 0x02 -F 0x10",
+  st.flag = fragCounter::ST.FLAG,
   fragments = TRUE,
   do.gc = FALSE,
   use.skel = FALSE
@@ -25,7 +25,7 @@ bam.cov.skel(
 
 \item{chunksize}{integer Size of window (default = 1e5)}
 
-\item{min.mapq}{integer Minimim map quality reads to consider for counts (default = 30)}
+\item{min.mapq}{integer Minimim map quality reads to consider for counts (default = 20)}
 
 \item{verbose}{boolean Flag to increase vebosity (default = TRUE)}
 

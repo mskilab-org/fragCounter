@@ -12,13 +12,14 @@ fragCounter(
   window = 200,
   gc.rds.dir,
   map.rds.dir,
-  minmapq = 1,
+  minmapq = 20,
   reference = NULL,
   paired = TRUE,
   outdir = NULL,
   exome = FALSE,
   use.skel = FALSE,
-  chr.sub = TRUE
+  chr.sub = TRUE,
+  st.flag = fragCounter::ST.FLAG
 )
 }
 \arguments{

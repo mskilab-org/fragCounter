@@ -3,6 +3,7 @@
 export(GC.fun)
 export(MAP.fun)
 export(PrepareCov)
+export(ST.FLAG)
 export(bam.cov.skel)
 export(coco)
 export(correctcov_stub)

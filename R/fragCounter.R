@@ -1,24 +1,22 @@
-#' @import GenomicRanges
-#' @import gUtils
-#' @import rtracklayer
-#' @import GenomeInfoDb
-#' @importFrom GenomeInfoDb seqlengths
-#' @importFrom data.table data.table fread rbindlist set setkey setkeyv setnames transpose as.data.table
-#' @importFrom stats cor loess predict quantile
-#' @importFrom skidb read_gencode
-#' @importFrom Biostrings alphabetFrequency
-#' @importFrom parallel mclapply
-#'
-#' @importFrom Rsamtools BamFile
-#' @importFrom grDevices col2rgb rgb png dev.off
-#' @importFrom IRanges IRanges
-#' @importFrom DNAcopy CNA segment smooth.CNA
-#' @importFrom graphics plot lines
-#' @importFrom utils globalVariables
+  
+# ST.FLAG = "-f 0x02 -F 0x10" # former default - DOES NOT EXCLUDE DUPS
 
-
-globalVariables(c(".", ".N", ".SD", ":=", "V1", "V2", "V3", "bam", "bin", "black_list_pct", "blacklisted", "child", "chr", "count", "counts", "gc.wig", "index", "ix.start", "lev0", "lev1", "map.wig", "newcount", "numlevs", "pair", "parent", "reads", "reads.corrected", "rowid", "sortSeqlevels", "tmp"))
-
+#' Samtools flags
+#' 
+#' Samtools flags for fragCounter bam query
+#' -F exclude ANY bits set
+#' 3868 sets bits
+#' 4 - Read unmapped
+#' 8 - Mate unmapped
+#' 16 - Read reverse strand
+#' 256 - Not primary alignment (secondary alignment)
+#' 512 - Read fails platform/vendor quality checks
+#' 1024 - Read is PCR or optical duplicate
+#' 2048 - Supplementary alignment (chimeric, non-contiguous alignment)
+#' -f requires read have ALL bits set
+#' 2 - Read mapped in proper pair
+#' @export
+ST.FLAG = "-f 2 -F 3868" # https://broadinstitute.github.io/picard/explain-flags.html
 
 #' @title Multi-scale coverage correction
 #' @description Given gc and mappability coverage correction at k "nested" scales finds the coverage
@@ -45,7 +43,6 @@ globalVariables(c(".", ".N", ".SD", ":=", "V1", "V2", "V3", "bam", "bin", "black
 #' min.segwidth = 5e6, mono = TRUE, verbose = TRUE, FUN = NULL, ...,
 #' mc.cores = 1, exome = FALSE)
 #' @export
-
 multicoco = function(cov, numlevs = 1, base = max(10, 1e5 / max(width(cov))),
                      fields = c("gc", "map"), iterative = TRUE, presegment = TRUE,
                      min.segwidth = 5e6, mono = TRUE, verbose = TRUE,
@@ -294,138 +291,36 @@ multicoco = function(cov, numlevs = 1, base = max(10, 1e5 / max(width(cov))),
 #' @param use.skel boolean flag If false then default exome skeleton from gencode is used, if TRUE, user defined skeleton is usde
 #' @param chr.sub boolean if TRUE, remove 'chr' prefix on seqnames. default TRUE
 #' @export
-
-fragCounter = function(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200, gc.rds.dir, map.rds.dir, minmapq = 1, reference = NULL, paired = TRUE, outdir = NULL, exome = FALSE, use.skel = FALSE, chr.sub = TRUE) {
+fragCounter = function(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200, gc.rds.dir, map.rds.dir, minmapq = 20, reference = NULL, paired = TRUE, outdir = NULL, exome = FALSE, use.skel = FALSE, chr.sub = TRUE, st.flag = fragCounter::ST.FLAG) {
   out.rds = paste(outdir, '/cov.rds', sep = '')
   imageroot = gsub('.rds$', '', out.rds)
   if (exome == TRUE) {
-    cov = PrepareCov(bam, skeleton = skeleton, cov = NULL, midpoint = midpoint, window = window, minmapq = minmapq, paired = paired, outdir, exome = TRUE, use.skel = use.skel)
+    cov = PrepareCov(bam, skeleton = skeleton, cov = NULL, midpoint = midpoint, window = window, minmapq = minmapq, paired = paired, outdir, exome = TRUE, use.skel = use.skel, st.flag = st.flag)
     cov = correctcov_stub(cov, gc.rds.dir = gc.rds.dir, map.rds.dir = map.rds.dir, exome = TRUE, chr.sub = chr.sub)
     cov$reads.corrected = coco(cov, mc.cores = 1, fields = c('gc', 'map'), iterative = T, exome = TRUE, imageroot = imageroot)$reads.corrected
 
   } else {
-    cov = PrepareCov(bam, cov = NULL, reference = reference, midpoint = midpoint, window = window, minmapq = minmapq, paired = paired, outdir)
+    cov = PrepareCov(bam, cov = NULL, reference = reference, midpoint = midpoint, window = window, minmapq = minmapq, paired = paired, outdir, st.flag = st.flag)
     cov = correctcov_stub(cov, gc.rds.dir = gc.rds.dir, map.rds.dir = map.rds.dir, chr.sub = chr.sub)
     cov$reads.corrected = multicoco(cov, numlevs = 1, base = max(10, 1e5/window), mc.cores = 1, fields = c('gc', 'map'), iterative = T, mono = T)$reads.corrected
   }
   if (!is.null(outdir)) {
     out.rds = paste(outdir, '/cov.rds', sep = '')
     out.corr = paste(gsub('.rds$', '', out.rds), '.corrected.bw', sep = '')
-##    if (!is.null(tryCatch({library(rtracklayer); 'success'}, error = function(e) NULL))) { #' twalradt Wednesday, Jan 16, 2019 03:55:28 PM
-      cov.corr.out = cov
-      cov.corr.out$score = cov$reads.corrected
-      cov.corr.out$score[is.na(cov.corr.out$score)] = -1
-      cov.corr.out = cov.corr.out[width(cov.corr.out)==window] ## remove any funky widths at end of chromosome
-      if (exome == TRUE) {
-        export(cov.corr.out[, 'score'], out.corr, 'bigWig', dataFormat = 'variableStep')
-      } else {
-        export(cov.corr.out[, 'score'], out.corr, 'bigWig', dataFormat = 'fixedStep')
-      }
-##    } #' twalradt Wednesday, Jan 16, 2019 03:55:58 PM
+    cov.corr.out = cov
+    cov.corr.out$score = cov$reads.corrected
+    cov.corr.out$score[is.na(cov.corr.out$score)] = -1
+    cov.corr.out = cov.corr.out[width(cov.corr.out)==window] ## remove any funky widths at end of chromosome
+    if (exome == TRUE) {
+      export(cov.corr.out[, 'score'], out.corr, 'bigWig', dataFormat = 'variableStep')
+    } else {
+      export(cov.corr.out[, 'score'], out.corr, 'bigWig', dataFormat = 'fixedStep')
+    }
     saveRDS(cov, paste(gsub('.rds$', '', out.rds), '.rds', sep = ''))
   }
   return(cov)
   cat('done\n')
 }
-
-
-## #' @name bam.cov.exome
-## #' @title Get coverage as GRanges from BAM using exons as tiles
-## #' @description
-## #' Quick way to get tiled coverage via piping to samtools (e.g. ~10 CPU-hours for 100bp tiles, 5e8 read pairs)
-## #'
-## #' Gets coverage for exons, pulling "chunksize" records at a time and incrementing bin
-## #'
-## #' @param bam.file string Input BAM file
-## #' @param chunksize integer Size of window (default = 1e5)
-## #' @param min.mapq integer Minimim map quality reads to consider for counts (default = 30)
-## #' @param verbose boolean Flag to increase vebosity (default = TRUE)
-## #' @param max.tlen integer Maximum paired-read insert size to consider (default = 1e4)
-## #' @param st.flag string Samtools flag to filter reads on (default = '-f 0x02 -F 0x10')
-## #' @param fragments boolean flag (default = FALSE) detremining whether to compute fragment (i.e. proper pair footprint aka insert) density or read density
-## #' @param do.gc boolean Flag to execute garbage collection via 'gc()' (default = FALSE)
-## #' @return GRanges of exon tiles across seqlengths of bam.file with meta data field $counts specifying fragment counts centered (default = TRUE)
-## #' in the given bin.
-## #' @author Trent Walradt
-## #' @export
-
-## bam.cov.exome = function(bam.file, chunksize = 1e6, min.mapq = 1, verbose = TRUE, max.tlen = 1e4, st.flag = "-f 0x02 -F 0x10", fragments = TRUE, do.gc = FALSE)
-## {
-##   ## check that the BAM is valid
-##     check_valid_bam = readChar(gzfile(bam.file, 'r'), 4)
-##     if (!identical(check_valid_bam, 'BAM\1')){
-##         stop("Cannot open BAM. A valid BAM for 'bam_file' must be provided.")
-##     }
-##   cmd = 'samtools view %s %s -q %s | cut -f "3,4,9"' ## cmd line to grab the rname, pos, and tlen columns
-##   exome = reduce(skidb::read_gencode('exon')) ## Read in exome GRanges to get exons to used as your windows instead of fixed width
-##   numwin = length(exome)
-##   cat('Calling', sprintf(cmd, st.flag, bam.file, min.mapq), '\n')
-##   p = pipe(sprintf(cmd, st.flag, bam.file, min.mapq), open = 'r')
-##   i = 0
-##   counts = gr2dt(exome)
-##   counts[, ':=' (strand = NULL, width = NULL)]
-##   setnames(counts, "seqnames", "chr")
-##   counts = counts[, bin := 1:length(start)] #, by = chr]
-##   counts[, count := 0]
-##   counts[, rowid := 1:length(count)]
-##   setkeyv(counts, c("chr", "bin")) ## now we can quickly populate the right entries
-##   totreads = 0
-##   st = Sys.time()
-##   if (verbose){
-##     cat('Starting fragment count on', bam.file, 'and min mapQ', min.mapq, 'and   insert size limit', max.tlen, '\n')
-##   }
-##   while (length(chunk <- readLines(p, n = chunksize)) > 0)
-##   {
-## #  browser(expr = i == 2)
-## #  browser()
-##     i = i+1
-##     chunk = fread(paste(chunk, collapse = "\n"), header = F)[abs(V3) <= max.tlen, ]
-##     chunk[, V2 := ifelse(V3 < 0, V2 + V3, V2)] # Convert negative reads to positive
-##     chunk[, V3 := abs(V3)]
-##     if (grepl("chr",chunk$V1[1])) { # Robust to samples that start with or without 'chr' before chromosomes
-##       chunk[, V1 := gsub("chr", "", V1)]
-##     }
-##     chunk = chunk[which(V1 %in% GenomeInfoDb::seqlevels(exome))] ## Exome only has seqlevels 1-22,X,Y,M, remove any additional seqlevels from sample
-##     if (nrow(chunk) > 0) {
-##       chunk.gr = GRanges(seqnames = chunk$V1, ranges = IRanges(start = chunk$V2, width = chunk$V3))
-##       ## Robust to chunks that fall entirely between exons
-##       chunk.match = tryCatch(
-##         gr.match(chunk.gr,exome),
-##         error = function(e) e
-##       )
-##       if(!inherits(chunk.match, "error")){
-##         chunk[, bin := chunk.match]
-##         tabs = chunk[, list(newcount = length(V1)), by = list(chr = as.character(V1), bin)] ## tabulate reads to bins data.table style
-##         counts[tabs, count := count + newcount] ## populate latest bins in master data.table
-##       }
-##     }
-##     ## should be no memory issues here since we preallocate the data table .. but they still appear
-##     if (do.gc){
-##         print('GC!!')
-##         print(gc())
-##     }
-##     ## report timing
-##     if (verbose){
-##       cat('bam.cov.tile.st ', bam.file, 'chunk', i, 'num fragments processed', i*chunksize, '\n')
-##       timeelapsed = as.numeric(difftime(Sys.time(), st, units = 'hours'))
-##       meancov = i * chunksize / counts[tabs[nrow(tabs),], ]$rowid  ## estimate comes from total reads and "latest" bin filled
-##       totreads = meancov * numwin
-##       tottime = totreads*timeelapsed/(i*chunksize)
-##       rate = i*chunksize / timeelapsed / 3600
-##       cat('mean cov:', round(meancov,1), 'per bin, estimated tot fragments:', round(totreads/1e6,2), 'million fragments, processing', rate,
-##           'fragments/second\ntime elapsed:', round(timeelapsed,2), 'hours, estimated time remaining:', round(tottime - timeelapsed,2), 'hours', ', estimated total time', round(tottime,2), 'hours\n')
-##     }
-##   }
-##   x = data.table(chr = c(1:22, "X", "Y", "M"), order = 1:25)
-##   counts[, order := x$order[match(chr, x$chr)]]
-##   counts = counts[order(order)][, order := NULL]
-##   exome$counts = counts$count
-##     if (verbose){
-##       cat("Finished computing coverage, and making GRanges\n")
-##     }
-##   close(p)
-##   return(exome)
-## }
 
 
 #' @title Mappability calculator
@@ -536,12 +431,11 @@ GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win 
 #' @param use.skel boolean flag If false then default exome skeleton from gencode is used, if TRUE, user defined skeleton is used
 #' @author Trent Walradt
 #' @export
-
-PrepareCov = function(bam, skeleton, cov = NULL, reference = NULL, midpoint = TRUE, window = 200, minmapq = 1, paired = TRUE, outdir = NULL, exome = FALSE, use.skel = FALSE) {
+PrepareCov = function(bam, skeleton, cov = NULL, reference = NULL, midpoint = TRUE, window = 200, minmapq = 20, paired = TRUE, outdir = NULL, exome = FALSE, use.skel = FALSE, st.flag = fragCounter::ST.FLAG) {
   library(GenomeInfoDb) # ADDED BY TANUBRATA: Forcefully loading GenomeInfoDb to Namespace since it is failing for cram files
   if (exome == TRUE){
 #    cov = bam.cov.exome(bam, chunksize = 1e6, min.mapq = 1)
-    cov = bam.cov.skel(bam, skeleton, chunksize = 1e6, min.mapq = 1, use.skel = use.skel)
+    cov = bam.cov.skel(bam, skeleton, chunksize = 1e6, min.mapq = minmapq, use.skel = use.skel, st.flag = st.flag)
   } else {
     if (is.null(bam)) {
       bam = ''
@@ -556,7 +450,7 @@ PrepareCov = function(bam, skeleton, cov = NULL, reference = NULL, midpoint = TR
         paired = TRUE
       }
       if (paired) {
-        cov = bamUtils::bam.cov.tile(bam, window = window, chunksize = 1e6, midpoint = TRUE, min.mapq = 1, reference = reference)  ## counts midpoints of fragments
+        cov = bamUtils::bam.cov.tile(bam, window = window, chunksize = 1e6, midpoint = TRUE, min.mapq = minmapq, reference = reference, st.flag = st.flag)  ## counts midpoints of fragments
       }
       else {
         file.type = bamorcram(bam)
@@ -565,7 +459,20 @@ PrepareCov = function(bam, skeleton, cov = NULL, reference = NULL, midpoint = TR
 
         sl = GenomeInfoDb::seqlengths(BamFile(bam))
         tiles = gr.tile(sl, window)
-        cov = bamUtils::bam.cov.gr(bam, intervals = tiles, isPaired = NA, isProperPair = NA, hasUnmappedMate = NA, chunksize = 1e5, verbose = TRUE)  ## counts midpoints of fragments    # Can we increase chunksize?
+        cov = bamUtils::bam.cov.gr(
+          bam, 
+          intervals = tiles, 
+          isPaired = NA, 
+          isProperPair = NA, 
+          isUnmappedQuery = FALSE, 
+          hasUnmappedMate = FALSE, 
+          isNotPassingQualityControls = FALSE,
+          isNotPrimaryRead = FALSE,
+          isDuplicate = FALSE,
+          isSupplementaryAlignment = FALSE,
+          chunksize = 1e5, 
+          verbose = TRUE
+        )  ## counts midpoints of fragments    # Can we increase chunksize?
         cov$count = cov$records/width(cov)
       }
     }
@@ -935,7 +842,7 @@ bamorcram = function(file)
 #' @param bam.file string Input BAM file
 #' @param skeleton string Input data.table with intervals for which there is coverage data
 #' @param chunksize integer Size of window (default = 1e5)
-#' @param min.mapq integer Minimim map quality reads to consider for counts (default = 30)
+#' @param min.mapq integer Minimim map quality reads to consider for counts (default = 20)
 #' @param verbose boolean Flag to increase vebosity (default = TRUE)
 #' @param max.tlen integer Maximum paired-read insert size to consider (default = 1e4)
 #' @param st.flag string Samtools flag to filter reads on (default = '-f 0x02 -F 0x10')
@@ -946,8 +853,7 @@ bamorcram = function(file)
 #' in the given bin.
 #' @author Trent Walradt
 #' @export
-
-bam.cov.skel = function(bam.file, skeleton, chunksize = 1e5, min.mapq = 1, verbose = TRUE, reference = NULL, max.tlen = 1e4, st.flag = "-f 0x02 -F 0x10", fragments = TRUE, do.gc = FALSE, use.skel = FALSE)
+bam.cov.skel = function(bam.file, skeleton, chunksize = 1e5, min.mapq = 20, verbose = TRUE, reference = NULL, max.tlen = 1e4, st.flag = fragCounter::ST.FLAG, fragments = TRUE, do.gc = FALSE, use.skel = FALSE)
 {
   ## check that the BAM is valid
   file.type = bamorcram(bam.file)
