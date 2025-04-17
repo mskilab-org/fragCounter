@@ -475,6 +475,8 @@ PrepareCov = function(bam, skeleton, cov = NULL, reference = NULL, midpoint = TR
         )  ## counts midpoints of fragments    # Can we increase chunksize?
         cov$count = cov$records/width(cov)
       }
+      saveRDS(cov, "./cov.raw.rds")
+      cat("Finished saving raw coverage RDS\n")
     }
     else if (!is.null(cov)) {
       cov = readRDS(cov)
