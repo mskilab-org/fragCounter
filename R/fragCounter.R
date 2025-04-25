@@ -290,17 +290,19 @@ multicoco = function(cov, numlevs = 1, base = max(10, 1e5 / max(width(cov))),
 #' @param exome boolean If TRUE, perform correction using exons as bins instead of fixed size
 #' @param use.skel boolean flag If false then default exome skeleton from gencode is used, if TRUE, user defined skeleton is usde
 #' @param chr.sub boolean if TRUE, remove 'chr' prefix on seqnames. default TRUE
+#' @param min.tlen numeric Minimum template length (insert size)
+#' @param max.tlen numeric Maximum template length (insert size)
 #' @export
-fragCounter = function(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200, gc.rds.dir, map.rds.dir, minmapq = 20, reference = NULL, paired = TRUE, outdir = NULL, exome = FALSE, use.skel = FALSE, chr.sub = TRUE, st.flag = fragCounter::ST.FLAG) {
+fragCounter = function(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200, gc.rds.dir, map.rds.dir, minmapq = 20, reference = NULL, paired = TRUE, outdir = NULL, exome = FALSE, use.skel = FALSE, chr.sub = TRUE, st.flag = fragCounter::ST.FLAG, min.tlen = 0, max.tlen = 1e4) {
   out.rds = paste(outdir, '/cov.rds', sep = '')
   imageroot = gsub('.rds$', '', out.rds)
   if (exome == TRUE) {
-    cov = PrepareCov(bam, skeleton = skeleton, cov = NULL, midpoint = midpoint, window = window, minmapq = minmapq, paired = paired, outdir, exome = TRUE, use.skel = use.skel, st.flag = st.flag)
+    cov = PrepareCov(bam, skeleton = skeleton, cov = NULL, midpoint = midpoint, window = window, minmapq = minmapq, paired = paired, outdir, exome = TRUE, use.skel = use.skel, st.flag = st.flag, min.tlen = max.tlen, max.tlen = max.tlen)
     cov = correctcov_stub(cov, gc.rds.dir = gc.rds.dir, map.rds.dir = map.rds.dir, exome = TRUE, chr.sub = chr.sub)
     cov$reads.corrected = coco(cov, mc.cores = 1, fields = c('gc', 'map'), iterative = T, exome = TRUE, imageroot = imageroot)$reads.corrected
 
   } else {
-    cov = PrepareCov(bam, cov = NULL, reference = reference, midpoint = midpoint, window = window, minmapq = minmapq, paired = paired, outdir, st.flag = st.flag)
+    cov = PrepareCov(bam, cov = NULL, reference = reference, midpoint = midpoint, window = window, minmapq = minmapq, paired = paired, outdir, st.flag = st.flag, min.tlen = max.tlen, max.tlen = max.tlen)
     cov = correctcov_stub(cov, gc.rds.dir = gc.rds.dir, map.rds.dir = map.rds.dir, chr.sub = chr.sub)
     cov$reads.corrected = multicoco(cov, numlevs = 1, base = max(10, 1e5/window), mc.cores = 1, fields = c('gc', 'map'), iterative = T, mono = T)$reads.corrected
   }
@@ -429,9 +431,11 @@ GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win 
 #' @param outdir Directory to dump output into
 #' @param exome boolean If TRUE, use bam.cov.exome to calculate coverage
 #' @param use.skel boolean flag If false then default exome skeleton from gencode is used, if TRUE, user defined skeleton is used
+#' @param min.tlen numeric Minimum template length (insert size)
+#' @param max.tlen numeric Maximum template length (insert size)
 #' @author Trent Walradt
 #' @export
-PrepareCov = function(bam, skeleton, cov = NULL, reference = NULL, midpoint = TRUE, window = 200, minmapq = 20, paired = TRUE, outdir = NULL, exome = FALSE, use.skel = FALSE, st.flag = fragCounter::ST.FLAG) {
+PrepareCov = function(bam, skeleton, cov = NULL, reference = NULL, midpoint = TRUE, window = 200, minmapq = 20, paired = TRUE, outdir = NULL, exome = FALSE, use.skel = FALSE, st.flag = fragCounter::ST.FLAG, min.tlen = 0, max.tlen = 1e4) {
   library(GenomeInfoDb) # ADDED BY TANUBRATA: Forcefully loading GenomeInfoDb to Namespace since it is failing for cram files
   if (exome == TRUE){
 #    cov = bam.cov.exome(bam, chunksize = 1e6, min.mapq = 1)
@@ -450,7 +454,7 @@ PrepareCov = function(bam, skeleton, cov = NULL, reference = NULL, midpoint = TR
         paired = TRUE
       }
       if (paired) {
-        cov = bamUtils::bam.cov.tile(bam, window = window, chunksize = 1e6, midpoint = midpoint, min.mapq = minmapq, reference = reference, st.flag = st.flag)  ## counts midpoints of fragments
+        cov = bamUtils::bam.cov.tile(bam, window = window, chunksize = 1e6, midpoint = midpoint, min.mapq = minmapq, reference = reference, st.flag = st.flag, min.tlen = min.tlen, max.tlen = max.tlen)  ## counts midpoints of fragments
       }
       else {
         file.type = bamorcram(bam)

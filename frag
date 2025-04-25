@@ -34,6 +34,8 @@ if (!exists('opt'))
         make_option(c("-o", "--outdir"), type = "character", default = './', help = "Directory to dump output into"),
         make_option("--require_flags", type = "character", default = '2', help = "-f flag for samtools used in fragCounter"),
         make_option("--exclude_flags", type = "character", default = '3868', help = "-f flag for samtools used in fragCounter"),
+		make_option("--min.tlen", type = "numeric", default = 0, help = "Minimmum template length provided to bamUtils::bam.cov.tile"),
+		make_option("--max.tlen", type = "numeric", default = 1e4, help = "Maximum template length provided to bamUtils::bam.cov.tile"),
         make_option(c("-l", "--libdir"), type = "character", default = paste(Sys.getenv('GIT_HOME'), 'isva', sep = '/'), help = "Directory containing this R file")
       )
 
@@ -94,6 +96,6 @@ if (!is_null && !is_na && is_valid) {
 
 st.flag = paste(require_flags, exclude_flags)
 
-out = fragCounter(bam = opt$bam, cov = opt$cov, window = opt$window, reference = opt$reference, gc.rds.dir = opt$gcmapdir, map.rds.dir = opt$gcmapdir, minmapq = opt$minmapq, paired = opt$paired, outdir = opt$outdir, exome = opt$exome, use.skel = opt$use.skel, skeleton = opt$skeleton, st.flag = st.flag)
+out = fragCounter(bam = opt$bam, cov = opt$cov, window = opt$window, reference = opt$reference, gc.rds.dir = opt$gcmapdir, map.rds.dir = opt$gcmapdir, minmapq = opt$minmapq, paired = opt$paired, outdir = opt$outdir, exome = opt$exome, use.skel = opt$use.skel, skeleton = opt$skeleton, st.flag = st.flag, min.tlen = opt$min.tlen, max.tlen = opt$max.tlen)
 
 saveRDS(out, paste(opt$outdir, 'cov.rds', sep = '/'))
