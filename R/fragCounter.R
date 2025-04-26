@@ -293,35 +293,45 @@ multicoco = function(cov, numlevs = 1, base = max(10, 1e5 / max(width(cov))),
 #' @param min.tlen numeric Minimum template length (insert size)
 #' @param max.tlen numeric Maximum template length (insert size)
 #' @export
-fragCounter = function(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200, gc.rds.dir, map.rds.dir, minmapq = 20, reference = NULL, paired = TRUE, outdir = NULL, exome = FALSE, use.skel = FALSE, chr.sub = TRUE, st.flag = fragCounter::ST.FLAG, min.tlen = 0, max.tlen = 1e4) {
+fragCounter = function(bam, skeleton, cov = NULL, midpoint = TRUE, window = 200, gc.rds.dir, map.rds.dir, minmapq = 20, reference = NULL, paired = TRUE, outdir = NULL, exome = FALSE, use.skel = FALSE, chr.sub = TRUE, st.flag = fragCounter::ST.FLAG, min.tlen = 0, max.tlen = 1e4, correct_for_bias = TRUE) {
+  is_null_outdir_og = is.null(outdir)
+  if (is_null_outdir_og) {
+	outdir = "."
+  }
   out.rds = paste(outdir, '/cov.rds', sep = '')
   imageroot = gsub('.rds$', '', out.rds)
+  reads.corrected = NA_integer_
   if (exome == TRUE) {
-    cov = PrepareCov(bam, skeleton = skeleton, cov = NULL, midpoint = midpoint, window = window, minmapq = minmapq, paired = paired, outdir, exome = TRUE, use.skel = use.skel, st.flag = st.flag, min.tlen = max.tlen, max.tlen = max.tlen)
-    cov = correctcov_stub(cov, gc.rds.dir = gc.rds.dir, map.rds.dir = map.rds.dir, exome = TRUE, chr.sub = chr.sub)
-    cov$reads.corrected = coco(cov, mc.cores = 1, fields = c('gc', 'map'), iterative = T, exome = TRUE, imageroot = imageroot)$reads.corrected
+    cov = PrepareCov(bam, skeleton = skeleton, cov = NULL, midpoint = midpoint, window = window, minmapq = minmapq, paired = paired, outdir, exome = TRUE, use.skel = use.skel, st.flag = st.flag, min.tlen = min.tlen, max.tlen = max.tlen)
+	if (correct_for_bias) {
+		cov = correctcov_stub(cov, gc.rds.dir = gc.rds.dir, map.rds.dir = map.rds.dir, exome = TRUE, chr.sub = chr.sub)
+		reads.corrected = coco(cov, mc.cores = 1, fields = c('gc', 'map'), iterative = T, exome = TRUE, imageroot = imageroot)$reads.corrected
+	}
+    cov$reads.corrected = reads.corrected
 
   } else {
-    cov = PrepareCov(bam, cov = NULL, reference = reference, midpoint = midpoint, window = window, minmapq = minmapq, paired = paired, outdir, st.flag = st.flag, min.tlen = max.tlen, max.tlen = max.tlen)
-    cov = correctcov_stub(cov, gc.rds.dir = gc.rds.dir, map.rds.dir = map.rds.dir, chr.sub = chr.sub)
-    cov$reads.corrected = multicoco(cov, numlevs = 1, base = max(10, 1e5/window), mc.cores = 1, fields = c('gc', 'map'), iterative = T, mono = T)$reads.corrected
+    cov = PrepareCov(bam, cov = NULL, reference = reference, midpoint = midpoint, window = window, minmapq = minmapq, paired = paired, outdir, st.flag = st.flag, min.tlen = min.tlen, max.tlen = max.tlen)
+	if (correct_for_bias) {
+		cov = correctcov_stub(cov, gc.rds.dir = gc.rds.dir, map.rds.dir = map.rds.dir, chr.sub = chr.sub)
+		reads.corrected = multicoco(cov, numlevs = 1, base = max(10, 1e5/window), mc.cores = 1, fields = c('gc', 'map'), iterative = T, mono = T)$reads.corrected
+	}
+    cov$reads.corrected = reads.corrected
   }
-  if (!is.null(outdir)) {
-    out.rds = paste(outdir, '/cov.rds', sep = '')
+  if (!is_null_outdir_og) {
     out.corr = paste(gsub('.rds$', '', out.rds), '.corrected.bw', sep = '')
     cov.corr.out = cov
     cov.corr.out$score = cov$reads.corrected
     cov.corr.out$score[is.na(cov.corr.out$score)] = -1
     cov.corr.out = cov.corr.out[width(cov.corr.out)==window] ## remove any funky widths at end of chromosome
     if (exome == TRUE) {
-      export(cov.corr.out[, 'score'], out.corr, 'bigWig', dataFormat = 'variableStep')
+		export(cov.corr.out[, 'score'], out.corr, 'bigWig', dataFormat = 'variableStep')
     } else {
-      export(cov.corr.out[, 'score'], out.corr, 'bigWig', dataFormat = 'fixedStep')
+		export(cov.corr.out[, 'score'], out.corr, 'bigWig', dataFormat = 'fixedStep')
     }
     saveRDS(cov, paste(gsub('.rds$', '', out.rds), '.rds', sep = ''))
   }
-  return(cov)
   cat('done\n')
+  return(cov)
 }
 
 
