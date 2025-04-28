@@ -12,16 +12,16 @@ Remotes:
   github::mskilab-org/ffTrack,
   github::mskilab-org/skidb
 Depends:
-  R (>= 3.4)
-Imports:
+  R (>= 3.4),
+  GenomeInfoDb,
   bamUtils,
   data.table,
-  GenomicRanges (>= 1.8),
+  GenomicRanges (>= 1.8)
+Imports:
   gUtils,
   rtracklayer,
   Biostrings,
   DNAcopy,
-  GenomeInfoDb,
   IRanges,
   Rsamtools,
   skidb,

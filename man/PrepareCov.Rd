@@ -16,7 +16,9 @@ PrepareCov(
   outdir = NULL,
   exome = FALSE,
   use.skel = FALSE,
-  st.flag = fragCounter::ST.FLAG
+  st.flag = fragCounter::ST.FLAG,
+  min.tlen = 0,
+  max.tlen = 10000
 )
 }
 \arguments{
@@ -41,6 +43,10 @@ PrepareCov(
 \item{exome}{boolean If TRUE, use bam.cov.exome to calculate coverage}
 
 \item{use.skel}{boolean flag If false then default exome skeleton from gencode is used, if TRUE, user defined skeleton is used}
+
+\item{min.tlen}{numeric Minimum template length (insert size)}
+
+\item{max.tlen}{numeric Maximum template length (insert size)}
 }
 \description{
 Load BAM or coverage file and prepare for use in correctcov_stub

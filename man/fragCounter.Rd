@@ -19,7 +19,10 @@ fragCounter(
   exome = FALSE,
   use.skel = FALSE,
   chr.sub = TRUE,
-  st.flag = fragCounter::ST.FLAG
+  st.flag = fragCounter::ST.FLAG,
+  min.tlen = 0,
+  max.tlen = 10000,
+  correct_for_bias = TRUE
 )
 }
 \arguments{
@@ -50,6 +53,10 @@ fragCounter(
 \item{use.skel}{boolean flag If false then default exome skeleton from gencode is used, if TRUE, user defined skeleton is usde}
 
 \item{chr.sub}{boolean if TRUE, remove 'chr' prefix on seqnames. default TRUE}
+
+\item{min.tlen}{numeric Minimum template length (insert size)}
+
+\item{max.tlen}{numeric Maximum template length (insert size)}
 }
 \description{
 Runs entire fragCounter pipeline

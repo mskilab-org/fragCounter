@@ -446,7 +446,6 @@ GC.fun = function(win.size = 200, twobitURL = '~/DB/UCSC/hg19.2bit', twobit.win 
 #' @author Trent Walradt
 #' @export
 PrepareCov = function(bam, skeleton, cov = NULL, reference = NULL, midpoint = TRUE, window = 200, minmapq = 20, paired = TRUE, outdir = NULL, exome = FALSE, use.skel = FALSE, st.flag = fragCounter::ST.FLAG, min.tlen = 0, max.tlen = 1e4) {
-  library(GenomeInfoDb) # ADDED BY TANUBRATA: Forcefully loading GenomeInfoDb to Namespace since it is failing for cram files
   if (exome == TRUE){
 #    cov = bam.cov.exome(bam, chunksize = 1e6, min.mapq = 1)
     cov = bam.cov.skel(bam, skeleton, chunksize = 1e6, min.mapq = minmapq, use.skel = use.skel, st.flag = st.flag)
